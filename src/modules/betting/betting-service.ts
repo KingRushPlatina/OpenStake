@@ -6,7 +6,7 @@ import { instantGameById } from "@/modules/games/instant";
 import { AppError } from "@/lib/errors";
 import { progressionGameById } from "@/modules/games/stateful";
 import type { GameMetadata, PublicBet } from "@/modules/games/types";
-import type { ProgressionSnapshot } from "@/modules/games/stateful/types";
+import { progressionPayoutCents, type ProgressionSnapshot } from "@/modules/games/stateful/types";
 import type { Clock, IdGenerator } from "@/modules/wallet/constants";
 import { LedgerService } from "@/modules/wallet/ledger-service";
 import { getEventBus, type LiveBetEvent } from "@/modules/realtime/event-bus";
@@ -192,8 +192,9 @@ export class BettingService {
         const snapshot = game.start(parsedInput, { betCents: amountCents, random: seed.random });
         const settled = snapshot.status === "settled";
         const multiplier = cappedMultiplier(game.metadata, snapshot.multiplier);
-        const maxPayoutCents = payoutFor(amountCents, game.metadata.maxWinMultiplier);
-        const payoutCents = settled ? Math.min(snapshot.payoutCents ?? maxPayoutCents, maxPayoutCents) : 0;
+        const payoutCents = settled
+          ? progressionPayoutCents(amountCents, multiplier, snapshot.payoutCents, game.metadata.maxWinMultiplier)
+          : 0;
         const now = this.clock.now();
         const betId = this.ids.create("bet");
 
@@ -315,8 +316,9 @@ export class BettingService {
         });
         await this.ledger.recordAdditionalStake(tx, userId, additionalStakeCents);
       }
-      const maxPayoutCents = payoutFor(totalStakeCents, game.metadata.maxWinMultiplier);
-      const payoutCents = settled ? Math.min(next.payoutCents ?? maxPayoutCents, maxPayoutCents) : 0;
+      const payoutCents = settled
+        ? progressionPayoutCents(totalStakeCents, multiplier, next.payoutCents, game.metadata.maxWinMultiplier)
+        : 0;
       if (settled) {
         if (payoutCents > 0) {
           balance = await this.ledger.move(tx, {

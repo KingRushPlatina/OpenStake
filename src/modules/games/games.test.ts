@@ -12,7 +12,7 @@ import { getKenoPaytable } from "@/modules/games/paytables/keno";
 import { getWheelMultipliers, wheelGame } from "@/modules/games/instant/wheel";
 import { blackjackValue, createDeck, rankOf, suitOf } from "@/modules/games/cards";
 import type { RandomSource } from "@/modules/games/types";
-import type { ProgressionSnapshot } from "@/modules/games/stateful/types";
+import { progressionPayoutCents, type ProgressionSnapshot } from "@/modules/games/stateful/types";
 import type { BlackjackState } from "@/types/blackjack";
 
 type SettledState = BlackjackState & {
@@ -380,5 +380,12 @@ describe("stateful originals", () => {
     expect(lost.status).toBe("settled");
     expect(lost.multiplier).toBe(0);
     expect((lost.settledResult as { lost: boolean }).lost).toBe(true);
+  });
+
+  it("pays progression cashouts from the multiplier instead of the max win cap", () => {
+    expect(progressionPayoutCents(100, 3.1288, undefined, 1_000_000)).toBe(312);
+    expect(progressionPayoutCents(100, 3.1288, 500, 1_000_000)).toBe(500);
+    expect(progressionPayoutCents(100, 0, undefined, 1_000_000)).toBe(0);
+    expect(progressionPayoutCents(100, 3.1288, undefined, 2)).toBe(200);
   });
 });

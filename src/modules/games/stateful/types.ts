@@ -29,3 +29,13 @@ export type ProgressionEngine = {
 export function multiplierFromProbability(survivalProbability: number) {
   return Math.floor((0.99 / survivalProbability) * 10_000) / 10_000;
 }
+
+export function progressionPayoutCents(
+  stakeCents: number,
+  multiplier: number,
+  explicitPayout: number | undefined,
+  maxWinMultiplier: number,
+) {
+  const payout = explicitPayout ?? Math.floor(stakeCents * multiplier);
+  return Math.max(0, Math.min(payout, Math.floor(stakeCents * maxWinMultiplier)));
+}
