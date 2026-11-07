@@ -95,7 +95,9 @@ export class BettingService {
         const seed = await this.consumeSeed(tx, userId);
         const outcome = game.play(parsedInput, seed.random);
         const multiplier = cappedMultiplier(game.metadata, outcome.multiplier);
-        const payoutCents = payoutFor(amountCents, multiplier);
+        const payoutCents = game.resolvePayout
+          ? Math.max(0, Math.floor(game.resolvePayout(amountCents, outcome)))
+          : payoutFor(amountCents, multiplier);
         const now = this.clock.now();
         const betId = this.ids.create("bet");
         await this.ledger.recordPlacement(tx, userId, amountCents);

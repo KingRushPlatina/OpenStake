@@ -47,8 +47,8 @@ export function LobbyClient() {
             <span className="block italic text-gold/90">at every table.</span>
           </h1>
           <p className="mt-5 max-w-lg text-[13px] leading-6 text-muted sm:text-sm">
-            Ten original games, one committed seed. Dice, Plinko, Mines, Keno, Limbo, Wheel, HiLo, Dragon Tower,
-            Chicken Cross and Blackjack — all play money, all verifiable.
+            Eleven original games, one committed seed. Dice, Plinko, Mines, Keno, Limbo, Wheel, HiLo, Dragon
+            Tower, Chicken Cross, Blackjack and Roulette — all play money, all verifiable.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
@@ -65,7 +65,7 @@ export function LobbyClient() {
               <span className="size-1.5 rounded-full bg-green" /> {formatCents(session.wallet.balanceCents)} available
             </span>
             <span className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-gold" /> 10 originals
+              <span className="size-1.5 rounded-full bg-gold" /> {gameCatalog.length} originals
             </span>
             <span className="flex items-center gap-2">
               <span className="size-1.5 rounded-full bg-muted/50" /> No real money
@@ -84,7 +84,7 @@ export function LobbyClient() {
               <span className="h-px w-7 bg-gold/50" />
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80">The floor</p>
             </div>
-            <h2 className="mt-3 text-3xl text-ink">Ten originals, dealt clean.</h2>
+            <h2 className="mt-3 text-3xl text-ink">Eleven originals, dealt clean.</h2>
             <p className="mt-2 max-w-xl text-[11px] leading-5 text-muted/65">
               Instant games and table classics, settled server-side against a committed seed.
             </p>

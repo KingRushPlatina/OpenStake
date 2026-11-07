@@ -10,6 +10,8 @@ import { plinkoGame } from "@/modules/games/instant/plinko";
 import { kenoGame } from "@/modules/games/instant/keno";
 import { getKenoPaytable } from "@/modules/games/paytables/keno";
 import { getWheelMultipliers, wheelGame } from "@/modules/games/instant/wheel";
+import { rouletteGame, resolveRouletteStake } from "@/modules/games/instant/roulette";
+import { ROULETTE_WHEEL, ROULETTE_SPOTS, rouletteColor } from "@/lib/roulette";
 import { blackjackValue, createDeck, rankOf, suitOf } from "@/modules/games/cards";
 import type { RandomSource } from "@/modules/games/types";
 import { progressionPayoutCents, type ProgressionSnapshot } from "@/modules/games/stateful/types";
@@ -263,6 +265,26 @@ class QueueRandom implements RandomSource {
   }
 }
 
+class IndexRandom implements RandomSource {
+  constructor(private readonly index: number) {}
+  next() {
+    return 0.5;
+  }
+  int() {
+    return this.index;
+  }
+  pick<T>(items: readonly T[]) {
+    return items[0];
+  }
+  shuffle<T>(items: readonly T[]) {
+    return items as T[];
+  }
+}
+
+function spinTo(number: number) {
+  return new IndexRandom(ROULETTE_WHEEL.indexOf(number as (typeof ROULETTE_WHEEL)[number]));
+}
+
 describe("instant originals", () => {
   it("rolls dice under a threshold and pays the chance multiplier", () => {
     const outcome = diceGame.play({ direction: "under", chance: 49.5 }, new StaticRandom(0.25));
@@ -296,6 +318,107 @@ describe("instant originals", () => {
     const outcome = wheelGame.play({ segments: 10, risk: "low" }, new StaticRandom(0.5));
     expect(outcome.result).toMatchObject({ index: 0, segments: 10 });
     expect(outcome.multiplier).toBe(multipliers[0]);
+  });
+
+  it("builds a complete single-zero European wheel and felt", () => {
+    expect(ROULETTE_WHEEL).toHaveLength(37);
+    expect(new Set(ROULETTE_WHEEL).size).toBe(37);
+    expect(rouletteColor(0)).toBe("green");
+    expect(rouletteColor(32)).toBe("red");
+    expect(rouletteColor(26)).toBe("black");
+    expect(ROULETTE_SPOTS.length).toBeGreaterThan(150);
+    expect(ROULETTE_SPOTS.find((spot) => spot.id === "split-1-2")?.returnMultiplier).toBe(18);
+    expect(ROULETTE_SPOTS.find((spot) => spot.id === "corner-1-2-4-5")?.returnMultiplier).toBe(9);
+  });
+
+  it("pays a straight roulette number at thirty-five to one", () => {
+    const outcome = rouletteGame.play(
+      { bets: [{ kind: "straight", numbers: [17], amountCents: 100 }] },
+      spinTo(17),
+    );
+    expect(outcome.result).toMatchObject({
+      number: 17,
+      color: "black",
+      totalStakeCents: 100,
+      totalPayoutCents: 3_600,
+    });
+    expect(outcome.multiplier).toBe(36);
+    expect(rouletteGame.resolvePayout?.(100, outcome)).toBe(3_600);
+  });
+
+  it("loses a straight bet when the ball lands elsewhere", () => {
+    const outcome = rouletteGame.play(
+      { bets: [{ kind: "straight", numbers: [17], amountCents: 100 }] },
+      spinTo(18),
+    );
+    expect(outcome.result).toMatchObject({ totalPayoutCents: 0 });
+    expect(outcome.multiplier).toBe(0);
+    expect(rouletteGame.resolvePayout?.(100, outcome)).toBe(0);
+  });
+
+  it("settles inside and outside roulette bets together", () => {
+    const outcome = rouletteGame.play(
+      {
+        bets: [
+          { kind: "straight", numbers: [16], amountCents: 100 },
+          { kind: "red", amountCents: 100 },
+          { kind: "column", group: 1, amountCents: 100 },
+        ],
+      },
+      spinTo(16),
+    );
+    expect(outcome.result).toMatchObject({
+      totalStakeCents: 300,
+      totalPayoutCents: 4_100,
+    });
+    expect(outcome.multiplier).toBeCloseTo(4_100 / 300, 4);
+    expect((outcome.result.wins as unknown[]).length).toBe(3);
+  });
+
+  it("pays splits, streets, corners and six lines on the matching number", () => {
+    const cases = [
+      { kind: "split", numbers: [1, 2], number: 2, multiplier: 18 },
+      { kind: "street", numbers: [1, 2, 3], number: 3, multiplier: 12 },
+      { kind: "corner", numbers: [1, 2, 4, 5], number: 5, multiplier: 9 },
+      { kind: "sixline", numbers: [1, 2, 3, 4, 5, 6], number: 6, multiplier: 6 },
+      { kind: "street", numbers: [0, 1, 2], number: 0, multiplier: 12 },
+    ] as const;
+    for (const entry of cases) {
+      const outcome = rouletteGame.play(
+        { bets: [{ kind: entry.kind, numbers: [...entry.numbers], amountCents: 100 }] },
+        spinTo(entry.number),
+      );
+      expect(outcome.multiplier).toBe(entry.multiplier);
+    }
+  });
+
+  it("resolves the roulette stake as the sum of every chip on the felt", () => {
+    const input = {
+      bets: [
+        { kind: "straight" as const, numbers: [8], amountCents: 500 },
+        { kind: "dozen" as const, group: 1, amountCents: 2_500 },
+        { kind: "black" as const, amountCents: 100 },
+      ],
+    };
+    expect(resolveRouletteStake(input)).toBe(3_100);
+    const outcome = rouletteGame.play(input, spinTo(8));
+    expect(outcome.result).toMatchObject({ totalStakeCents: 3_100 });
+    expect(rouletteGame.resolvePayout?.(3_100, outcome)).toBe(500 * 36 + 2_500 * 3 + 100 * 2);
+  });
+
+  it("rejects a bet that does not exist on the table", () => {
+    expect(() =>
+      rouletteGame.play(
+        { bets: [{ kind: "split", numbers: [1, 3], amountCents: 100 }] },
+        spinTo(1),
+      ),
+    ).toThrow();
+    expect(() =>
+      rouletteGame.play(
+        { bets: [{ kind: "column", group: 4, amountCents: 100 }] },
+        spinTo(1),
+      ),
+    ).toThrow();
   });
 });
 

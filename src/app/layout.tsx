@@ -7,7 +7,7 @@ import { SiteShell } from "@/components/casino/site-shell";
 
 export const metadata: Metadata = {
   title: "OpenStake — Original play-money games",
-  description: "Ten original play-money games with virtual credits, verifiable results and no real-money wagering.",
+  description: "Eleven original play-money games with virtual credits, verifiable results and no real-money wagering.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

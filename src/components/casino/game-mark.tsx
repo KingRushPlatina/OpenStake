@@ -7,6 +7,7 @@ import {
   Dices,
   Disc3,
   Grid3x3,
+  Orbit,
   Spade,
   TrendingUp,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/client-utils";
 
 const iconMap = {
   blackjack: Spade,
+  roulette: Orbit,
   dice: Dices,
   limbo: TrendingUp,
   plinko: Grid3x3,

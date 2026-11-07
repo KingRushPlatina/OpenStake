@@ -3,6 +3,7 @@ import type { FairRandom } from "@/lib/fairness";
 
 export type GameId =
   | "blackjack"
+  | "roulette"
   | "dice"
   | "limbo"
   | "plinko"
@@ -45,6 +46,7 @@ export type InstantGameDefinition = {
   metadata: GameMetadata;
   inputSchema: z.ZodType;
   resolveAmount?: (input: unknown) => number;
+  resolvePayout?: (amountCents: number, outcome: EngineOutcome) => number;
   play: (input: unknown, random: RandomSource) => EngineOutcome;
 };
 

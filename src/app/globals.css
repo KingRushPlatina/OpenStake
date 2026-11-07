@@ -159,6 +159,21 @@ button {
   }
 }
 
+.roulette-hotspot {
+  fill: transparent;
+  cursor: pointer;
+  transition: fill 120ms ease;
+}
+
+.roulette-hotspot:hover {
+  fill: rgba(255, 240, 205, 0.13);
+}
+
+.roulette-hotspot:focus-visible {
+  fill: rgba(216, 184, 120, 0.2);
+  outline: none;
+}
+
 .table-felt {
   background:
     radial-gradient(ellipse at 50% 8%, rgba(78, 160, 124, 0.2), transparent 52%),

@@ -16,6 +16,21 @@ export const gameCatalog: GameMetadata[] = [
     available: true,
   },
   {
+    id: "roulette",
+    name: "Roulette",
+    category: "originals",
+    kind: "instant",
+    tagline: "European wheel, full felt",
+    description:
+      "Single-zero European roulette with the complete betting layout, a real spinning wheel and instant payouts.",
+    accent: "red",
+    icon: "roulette",
+    rtp: "97.3%",
+    minBetCents: 10,
+    maxWinMultiplier: 36,
+    available: true,
+  },
+  {
     id: "dice",
     name: "Dice",
     category: "originals",

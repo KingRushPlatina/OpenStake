@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import type { GameMetadata } from "@/modules/games/types";
 import { BlackjackGame } from "./blackjack/blackjack-game";
+import { RouletteGame } from "./roulette/roulette-game";
 import { DiceGame } from "./dice/dice-game";
 import { LimboGame } from "./limbo/limbo-game";
 import { PlinkoGame } from "./plinko/plinko-game";
@@ -17,6 +18,8 @@ export function GameRouter({ game }: { game: GameMetadata }) {
   switch (game.id) {
     case "blackjack":
       return <BlackjackGame game={game} />;
+    case "roulette":
+      return <RouletteGame game={game} />;
     case "dice":
       return <DiceGame game={game} />;
     case "limbo":
