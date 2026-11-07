@@ -15,7 +15,7 @@ export function LiveBets({ limit = 18, className }: { limit?: number; className?
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-green opacity-50" />
             <span className="relative inline-flex size-1.5 rounded-full bg-green" />
           </span>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Live at the table</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Live on the floor</p>
         </div>
         <Radio className="size-3.5 text-muted/60" />
       </div>
@@ -44,7 +44,7 @@ export function LiveBets({ limit = 18, className }: { limit?: number; className?
                     </span>
                   </div>
                   <div className="mt-0.5 flex items-center justify-between gap-2">
-                    <p className="truncate text-[9px] text-muted/50">Blackjack</p>
+                    <p className="truncate text-[9px] text-muted/50">{bet.gameName}</p>
                     <p className={cn("shrink-0 text-[9px] tabular-nums", bet.win ? "text-green/80" : "text-muted/45")}>
                       {formatCents(bet.win ? bet.payoutCents : bet.amountCents, { compact: true })}
                     </p>

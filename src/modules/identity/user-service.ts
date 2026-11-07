@@ -68,14 +68,14 @@ function botStats(index: number) {
   const wagered = totalBets * averageBet;
   const edge = (((index * 13) % 9) - 4) / 100;
   const profit = Math.round(wagered * edge);
-  const biggestWin = 5_000 + ((index * 44_221) % 120_000);
+  const biggestWin = 25_000 + ((index * 44_221) % 480_000);
   return {
     totalBets,
     wageredCents: wagered,
     payoutCents: wagered + profit,
     netProfitCents: profit,
     biggestWinCents: biggestWin,
-    biggestMultiplier: Math.round((2 + ((index * 13) % 50) / 100) * 100) / 100,
+    biggestMultiplier: Math.round((2 + ((index * 211) % 4_800) / 100) * 100) / 100,
   };
 }
 

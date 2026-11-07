@@ -49,3 +49,13 @@ export function isRed(card: string) {
   const suit = suitOf(card);
   return suit === "H" || suit === "D";
 }
+
+export function pokerValue(card: string) {
+  const rank = rankOf(card);
+  if (rank === "A") return 14;
+  if (rank === "K") return 13;
+  if (rank === "Q") return 12;
+  if (rank === "J") return 11;
+  if (rank === "T") return 10;
+  return Number(rank);
+}

@@ -16,10 +16,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <div className="max-w-xl">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/70">OpenStake Originals</p>
                 <p className="mt-2 text-[11px] leading-5 text-muted/70">
-                  A play-money blackjack table. No deposits, withdrawals, real-money wagering or prizes. 18+ only.
+                  A play-money originals floor. No deposits, withdrawals, real-money wagering or prizes. 18+ only.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-5 text-[11px] text-muted/70">
+                <Link href="/#games" className="transition hover:text-ink">Originals</Link>
                 <Link href="/fairness" className="transition hover:text-ink">Provably fair</Link>
                 <Link href="/leaderboard" className="transition hover:text-ink">Leaderboard</Link>
                 <Link href="/wallet" className="transition hover:text-ink">Wallet</Link>

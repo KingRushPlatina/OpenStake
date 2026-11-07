@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ArrowUpRight, Check, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
+import { gameCatalog } from "@/modules/games/catalog";
 import { useSession } from "@/components/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GameTile } from "@/components/casino/game-tile";
 import { LiveBets } from "@/components/casino/live-bets";
 import { TablePreview } from "@/components/casino/table-preview";
 import { avatarTone, cn, initials } from "@/lib/client-utils";
@@ -36,32 +38,32 @@ export function LobbyClient() {
         <div>
           <div className="flex items-center gap-3">
             <span className="h-px w-8 bg-gold/50" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.26em] text-gold/80">OpenStake Originals · Table 01</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.26em] text-gold/80">OpenStake Originals · The floor</span>
           </div>
           <h1 className="mt-6 max-w-xl text-[42px] leading-[1.02] text-ink sm:text-[60px] lg:text-[64px]">
             A better seat
-            <span className="block italic text-gold/90">at the table.</span>
+            <span className="block italic text-gold/90">at every table.</span>
           </h1>
           <p className="mt-5 max-w-lg text-[13px] leading-6 text-muted sm:text-sm">
-            One table, six decks and a dealer who stands on seventeen. Play blackjack with $100 in virtual credits,
-            then verify every hand against a committed server seed.
+            Ten original games, one committed seed. Dice, Plinko, Mines, Keno, Limbo, Wheel, HiLo, Dragon Tower,
+            Chicken Cross and Blackjack — all play money, all verifiable.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
-              <Link href="/casino/blackjack">
-                Take a seat <ArrowRight className="size-4" />
+              <Link href="#games">
+                Explore the floor <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button asChild variant="secondary" size="lg">
-              <Link href="#rules">House rules</Link>
+              <Link href="/casino/blackjack">Play Blackjack</Link>
             </Button>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] text-muted">
             <span className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-green" /> {formatCents(session.wallet.balanceCents)} on the table
+              <span className="size-1.5 rounded-full bg-green" /> {formatCents(session.wallet.balanceCents)} available
             </span>
             <span className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-gold" /> 99.5% RTP
+              <span className="size-1.5 rounded-full bg-gold" /> 10 originals
             </span>
             <span className="flex items-center gap-2">
               <span className="size-1.5 rounded-full bg-muted/50" /> No real money
@@ -71,19 +73,40 @@ export function LobbyClient() {
         <TablePreview />
       </section>
 
+      <section id="games" className="scroll-mt-24">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line/70 pb-5">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="h-px w-7 bg-gold/50" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80">The floor</p>
+            </div>
+            <h2 className="mt-3 text-3xl text-ink">Ten originals, dealt clean.</h2>
+            <p className="mt-2 max-w-xl text-[11px] leading-5 text-muted/65">
+              Instant games and table classics, settled server-side against a committed seed.
+            </p>
+          </div>
+          <span className="text-[10px] text-muted/45">{gameCatalog.length} games · 99%+ RTP</span>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {gameCatalog.map((game) => (
+            <GameTile key={game.id} game={game} />
+          ))}
+        </div>
+      </section>
+
       <section className="surface overflow-hidden">
         <div className="grid lg:grid-cols-[1.35fr_1fr]">
           <div className="border-b border-line/70 p-6 sm:p-8 lg:border-b-0 lg:border-r">
             <div className="flex items-center gap-3">
               <span className="grid size-11 place-items-center rounded-xl border border-gold/20 bg-gold/10 font-display text-xl text-gold">B</span>
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted/60">The table</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted/60">The flagship table</p>
                 <h2 className="mt-0.5 text-2xl text-ink">Blackjack</h2>
               </div>
             </div>
             <p className="mt-5 max-w-xl text-[12px] leading-6 text-muted">
               A focused single-table blackjack room. Hit, stand, double, split and insure with server-side settlement
-              and a full hand history. The shoe is shuffled per round and every result is reproducible.
+              and a full round history. The shoe is shuffled per round and every result is reproducible.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Badge tone="gold">Originals</Badge>
@@ -126,7 +149,7 @@ export function LobbyClient() {
           <div className="flex items-center justify-between border-b border-line/70 px-4 py-3">
             <div className="flex items-center gap-2">
               <Trophy className="size-3.5 text-gold" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Table leaders</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Floor leaders</p>
             </div>
             <Link href="/leaderboard" className="text-[10px] font-medium text-muted transition hover:text-ink">
               Full board <ArrowUpRight className="inline size-3" />
@@ -150,7 +173,7 @@ export function LobbyClient() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] font-medium text-ink">{row.name}</p>
-                    <p className="text-[9px] text-muted/45">{row.totalBets} hands</p>
+                    <p className="text-[9px] text-muted/45">{row.totalBets} rounds</p>
                   </div>
                   <div className="text-right">
                     <p className={cn("text-[11px] font-semibold tabular-nums", row.netProfitCents >= 0 ? "text-green" : "text-red")}>
@@ -170,9 +193,9 @@ export function LobbyClient() {
         <div className="surface p-6 sm:p-8">
           <div className="flex items-center gap-3">
             <span className="h-px w-7 bg-gold/50" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80">House rules</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80">Blackjack rules</p>
           </div>
-          <h2 className="mt-4 text-3xl text-ink">The details that matter.</h2>
+          <h2 className="mt-4 text-3xl text-ink">The flagship, in detail.</h2>
           <div className="mt-7 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
             {rules.map((rule) => (
               <div key={rule.label} className="flex items-center justify-between border-b border-line/50 pb-3">
@@ -191,10 +214,10 @@ export function LobbyClient() {
         <div className="surface relative overflow-hidden p-6 sm:p-8">
           <div className="absolute -right-16 -top-16 size-48 rounded-full bg-green/5 blur-3xl" />
           <ShieldCheck className="size-5 text-green" />
-          <h2 className="mt-4 text-2xl text-ink">Every hand, verifiable.</h2>
+          <h2 className="mt-4 text-2xl text-ink">Every result, verifiable.</h2>
           <p className="mt-3 text-[11px] leading-5 text-muted">
-            The server commits to a seed before the deal. Rotate the pair and the previous server seed is revealed,
-            along with the exact cards, nonce and outcome.
+            The server commits to a seed before you play. Rotate the pair and the previous server seed is revealed,
+            along with the exact input, nonce and outcome.
           </p>
           <Link href="/fairness" className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-medium text-gold transition hover:text-gold-strong">
             Inspect your seeds <ArrowRight className="size-3.5" />
@@ -206,7 +229,7 @@ export function LobbyClient() {
             </div>
             <div>
               <p className="font-display text-xl text-ink">HMAC</p>
-              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Card source</p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Outcome source</p>
             </div>
           </div>
         </div>
@@ -220,8 +243,8 @@ export function LobbyClient() {
           </p>
         </div>
         <Button asChild variant="secondary" size="sm">
-          <Link href="/casino/blackjack">
-            Deal a hand <ArrowRight className="size-3.5" />
+          <Link href="#games">
+            Pick a table <ArrowRight className="size-3.5" />
           </Link>
         </Button>
       </section>

@@ -6,8 +6,8 @@ import { AppProviders } from "@/components/providers";
 import { SiteShell } from "@/components/casino/site-shell";
 
 export const metadata: Metadata = {
-  title: "OpenStake — Blackjack, dealt properly",
-  description: "A private blackjack table with virtual credits, verifiable deals and no real-money wagering.",
+  title: "OpenStake — Original play-money games",
+  description: "Ten original play-money games with virtual credits, verifiable results and no real-money wagering.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

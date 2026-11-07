@@ -23,3 +23,7 @@ export type ProgressionEngine = {
   act: (snapshot: ProgressionSnapshot, action: unknown) => ProgressionSnapshot;
 };
 
+
+export function multiplierFromProbability(survivalProbability: number) {
+  return Math.floor((0.99 / survivalProbability) * 10_000) / 10_000;
+}

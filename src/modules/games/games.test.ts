@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { blackjackGame } from "@/modules/games/stateful/blackjack";
+import { minesGame } from "@/modules/games/stateful/mines";
+import { hiloGame } from "@/modules/games/stateful/hilo";
+import { dragonTowerGame } from "@/modules/games/stateful/dragon-tower";
+import { chickenCrossGame } from "@/modules/games/stateful/chicken-cross";
+import { diceGame } from "@/modules/games/instant/dice";
+import { limboGame } from "@/modules/games/instant/limbo";
+import { plinkoGame } from "@/modules/games/instant/plinko";
+import { kenoGame } from "@/modules/games/instant/keno";
+import { getKenoPaytable } from "@/modules/games/paytables/keno";
+import { getWheelMultipliers, wheelGame } from "@/modules/games/instant/wheel";
 import { blackjackValue, createDeck, rankOf, suitOf } from "@/modules/games/cards";
 import type { RandomSource } from "@/modules/games/types";
 import type { ProgressionSnapshot } from "@/modules/games/stateful/types";
@@ -144,5 +154,160 @@ describe("blackjack", () => {
     const start = startWith(["10S", "9H", "9D", "7C", "6S"]);
     const settled = play(start, { type: "stand" });
     expect(() => play(settled, { type: "hit" })).toThrow();
+  });
+});
+
+class StaticRandom implements RandomSource {
+  constructor(
+    private readonly nextValue: number,
+    private readonly shuffleSource: unknown[] = [],
+  ) {}
+  next() {
+    return this.nextValue;
+  }
+  int() {
+    return 0;
+  }
+  pick<T>(items: readonly T[]) {
+    return items[0];
+  }
+  shuffle<T>(items: readonly T[]) {
+    return (this.shuffleSource.length > 0 ? this.shuffleSource : items) as T[];
+  }
+}
+
+class QueueRandom implements RandomSource {
+  constructor(private readonly queue: unknown[][]) {}
+  next() {
+    return 0.1;
+  }
+  int() {
+    return 0;
+  }
+  pick<T>(items: readonly T[]) {
+    return items[0];
+  }
+  shuffle<T>() {
+    return (this.queue.shift() ?? []) as T[];
+  }
+}
+
+describe("instant originals", () => {
+  it("rolls dice under a threshold and pays the chance multiplier", () => {
+    const outcome = diceGame.play({ direction: "under", chance: 49.5 }, new StaticRandom(0.25));
+    expect(outcome.result).toMatchObject({ roll: 25, direction: "under", win: true });
+    expect(outcome.multiplier).toBeCloseTo(2);
+  });
+
+  it("resolves limbo against the target", () => {
+    const win = limboGame.play({ target: 1.5 }, new StaticRandom(0.5));
+    expect(win.result).toMatchObject({ result: 1.98, target: 1.5, win: true });
+    expect(win.multiplier).toBe(1.5);
+    const loss = limboGame.play({ target: 5 }, new StaticRandom(0.5));
+    expect(loss.multiplier).toBe(0);
+  });
+
+  it("drops a plinko ball into the matching bucket", () => {
+    const outcome = plinkoGame.play({ rows: 8, risk: "low" }, new StaticRandom(0.1));
+    expect(outcome.result).toMatchObject({ rows: 8, bucket: 0 });
+    expect(outcome.multiplier).toBe(5.6);
+  });
+
+  it("matches keno picks against a drawn board", () => {
+    const deck = Array.from({ length: 40 }, (_, index) => index + 1);
+    const outcome = kenoGame.play({ picks: [1, 2, 3], risk: "medium" }, new StaticRandom(0.5, deck));
+    expect(outcome.result).toMatchObject({ hitCount: 3 });
+    expect(outcome.multiplier).toBe(getKenoPaytable(3, "medium")[3]);
+  });
+
+  it("lands the wheel on the generated segment", () => {
+    const multipliers = getWheelMultipliers(10, "low");
+    const outcome = wheelGame.play({ segments: 10, risk: "low" }, new StaticRandom(0.5));
+    expect(outcome.result).toMatchObject({ index: 0, segments: 10 });
+    expect(outcome.multiplier).toBe(multipliers[0]);
+  });
+});
+
+describe("stateful originals", () => {
+  it("reveals mines safely and cashes out at the current multiplier", () => {
+    const board = Array.from({ length: 25 }, (_, index) => index);
+    const start = minesGame.start({ mines: 3 }, { betCents: 100, random: new StaticRandom(0.5, board) });
+    expect(start.status).toBe("active");
+    expect((start.publicState as { multiplier: number }).multiplier).toBe(1);
+    const revealed = minesGame.act(start, { type: "reveal", tile: 5 });
+    expect(revealed.status).toBe("active");
+    const cashed = minesGame.act(revealed, { type: "cashout" });
+    expect(cashed.status).toBe("settled");
+    expect(cashed.multiplier).toBeGreaterThan(1);
+    expect((cashed.settledResult as { lost: boolean }).lost).toBe(false);
+  });
+
+  it("ends the mines round when a mine is revealed", () => {
+    const board = Array.from({ length: 25 }, (_, index) => index);
+    const start = minesGame.start({ mines: 3 }, { betCents: 100, random: new StaticRandom(0.5, board) });
+    const lost = minesGame.act(start, { type: "reveal", tile: 0 });
+    expect(lost.status).toBe("settled");
+    expect(lost.multiplier).toBe(0);
+    expect((lost.settledResult as { lost: boolean }).lost).toBe(true);
+  });
+
+  it("builds a hilo multiplier on a winning call and cashes out", () => {
+    const shoe = ["5S", "9H", "2D", "KD", "3C"];
+    const start = hiloGame.start({}, { betCents: 100, random: new StaticRandom(0.5, shoe) });
+    expect(start.status).toBe("active");
+    const won = hiloGame.act(start, { type: "higher" });
+    expect(won.status).toBe("active");
+    expect(won.multiplier).toBeGreaterThan(1);
+    const cashed = hiloGame.act(won, { type: "cashout" });
+    expect(cashed.status).toBe("settled");
+    expect(cashed.multiplier).toBeGreaterThan(1);
+  });
+
+  it("settles a hilo loss when the call is wrong", () => {
+    const shoe = ["5S", "9H", "2D", "9D"];
+    const start = hiloGame.start({}, { betCents: 100, random: new StaticRandom(0.5, shoe) });
+    const lost = hiloGame.act(start, { type: "lower" });
+    expect(lost.status).toBe("settled");
+    expect(lost.multiplier).toBe(0);
+    expect((lost.settledResult as { lost: boolean }).lost).toBe(true);
+  });
+
+  it("climbs a dragon tower floor and cashes out", () => {
+    const rows = Array.from({ length: 9 }, () => [0, 2, 1]);
+    const start = dragonTowerGame.start({ difficulty: "easy" }, { betCents: 100, random: new QueueRandom(rows) });
+    expect(start.status).toBe("active");
+    const climbed = dragonTowerGame.act(start, { type: "pick", tile: 1 });
+    expect(climbed.status).toBe("active");
+    expect(climbed.multiplier).toBeGreaterThan(1);
+    const cashed = dragonTowerGame.act(climbed, { type: "cashout" });
+    expect(cashed.status).toBe("settled");
+    expect(cashed.multiplier).toBeGreaterThan(1);
+  });
+
+  it("ends the dragon tower climb on a dragon", () => {
+    const rows = Array.from({ length: 9 }, () => [0, 2, 1]);
+    const start = dragonTowerGame.start({ difficulty: "easy" }, { betCents: 100, random: new QueueRandom(rows) });
+    const lost = dragonTowerGame.act(start, { type: "pick", tile: 0 });
+    expect(lost.status).toBe("settled");
+    expect(lost.multiplier).toBe(0);
+    expect((lost.settledResult as { lost: boolean }).lost).toBe(true);
+  });
+
+  it("crosses a safe lane and cashes out the chicken run", () => {
+    const start = chickenCrossGame.start({ difficulty: "medium" }, { betCents: 100, random: new StaticRandom(0.1) });
+    expect(start.status).toBe("active");
+    const crossed = chickenCrossGame.act(start, { type: "cross" });
+    expect(crossed.status).toBe("active");
+    expect(crossed.multiplier).toBeGreaterThan(1);
+    const cashed = chickenCrossGame.act(crossed, { type: "cashout" });
+    expect(cashed.status).toBe("settled");
+  });
+
+  it("stops the chicken run when traffic is hit", () => {
+    const start = chickenCrossGame.start({ difficulty: "medium" }, { betCents: 100, random: new StaticRandom(0.9) });
+    const lost = chickenCrossGame.act(start, { type: "cross" });
+    expect(lost.status).toBe("settled");
+    expect(lost.multiplier).toBe(0);
+    expect((lost.settledResult as { lost: boolean }).lost).toBe(true);
   });
 });

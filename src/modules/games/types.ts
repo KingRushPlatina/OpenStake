@@ -1,12 +1,23 @@
+import type { z } from "zod";
 import type { FairRandom } from "@/lib/fairness";
 
-export type GameId = "blackjack";
+export type GameId =
+  | "blackjack"
+  | "dice"
+  | "limbo"
+  | "plinko"
+  | "mines"
+  | "keno"
+  | "wheel"
+  | "hilo"
+  | "dragon-tower"
+  | "chicken-cross";
 
 export type GameCategory = "originals";
 
-export type GameKind = "stateful";
+export type GameKind = "instant" | "stateful";
 
-export type GameAccent = "green";
+export type GameAccent = "blue" | "purple" | "pink" | "green" | "amber" | "red" | "cyan" | "orange";
 
 export type GameMetadata = {
   id: GameId;
@@ -25,6 +36,18 @@ export type GameMetadata = {
 };
 
 export type RandomSource = Pick<FairRandom, "next" | "int" | "pick" | "shuffle">;
+
+export type EngineOutcome = {
+  multiplier: number;
+  result: Record<string, unknown>;
+};
+
+export type InstantGameDefinition = {
+  metadata: GameMetadata;
+  inputSchema: z.ZodType;
+  resolveAmount?: (input: unknown) => number;
+  play: (input: unknown, random: RandomSource) => EngineOutcome;
+};
 
 export type PublicBet = {
   id: string;

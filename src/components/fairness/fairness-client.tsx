@@ -6,6 +6,7 @@ import { Check, Copy, FileCheck2, KeyRound, RefreshCw, ShieldCheck } from "lucid
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
 import { useSession } from "@/components/session-provider";
+import { getGameMetadata } from "@/modules/games/catalog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/client-utils";
@@ -35,9 +36,9 @@ type BetVerification = {
 
 const steps = [
   { step: "01", title: "Commit", text: "We generate a server seed and publish only its SHA-256 hash before you play." },
-  { step: "02", title: "Mix", text: "Your client seed and the hand nonce are combined with the server seed." },
-  { step: "03", title: "Deal", text: "HMAC-SHA256 produces the deterministic floats that shuffle the shoe and deal the cards." },
-  { step: "04", title: "Reveal", text: "Rotate the pair to reveal the server seed and reproduce every previous hand." },
+  { step: "02", title: "Mix", text: "Your client seed and the bet nonce are combined with the server seed." },
+  { step: "03", title: "Play", text: "HMAC-SHA256 produces the deterministic floats that drive every game engine." },
+  { step: "04", title: "Reveal", text: "Rotate the pair to reveal the server seed and reproduce every previous round." },
 ];
 
 export function FairnessClient() {
@@ -78,7 +79,7 @@ export function FairnessClient() {
       queryClient.invalidateQueries({ queryKey: ["fairness"] });
       refresh();
       setClientSeedDraft(null);
-      toast.success("Client seed updated", { description: "Your next hand will use the new seed." });
+      toast.success("Client seed updated", { description: "Your next round will use the new seed." });
     },
     onError: (error) => toast.error("Could not update seed", { description: error.message }),
   });
@@ -100,10 +101,10 @@ export function FairnessClient() {
           <span className="h-px w-8 bg-gold/50" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.26em] text-gold/80">Provably fair</span>
         </div>
-        <h1 className="mt-4 max-w-2xl text-4xl text-ink sm:text-5xl">Every card, accounted for.</h1>
+        <h1 className="mt-4 max-w-2xl text-4xl text-ink sm:text-5xl">Every result, accounted for.</h1>
         <p className="mt-4 max-w-2xl text-[12px] leading-6 text-muted">
-          The shoe is shuffled from a committed server seed, your client seed and a hand nonce. The server seed stays
-          hidden until you rotate it. After rotation, every card and every payout can be reproduced.
+          Every outcome comes from a committed server seed, your client seed and a bet nonce. The server seed stays
+          hidden until you rotate it. After rotation, every input, result and payout can be reproduced.
         </p>
       </section>
 
@@ -146,8 +147,8 @@ export function FairnessClient() {
                 <p className="mt-1.5 text-[11px] font-medium text-ink">HMAC-SHA256</p>
               </div>
               <div className="rounded-xl border border-line/60 bg-surface-2/50 p-3">
-                <p className="text-[9px] uppercase tracking-[0.14em] text-muted/45">Shoe</p>
-                <p className="mt-1.5 text-[11px] font-medium text-ink">6 decks</p>
+                <p className="text-[9px] uppercase tracking-[0.14em] text-muted/45">Scope</p>
+                <p className="mt-1.5 text-[11px] font-medium text-ink">All originals</p>
               </div>
             </div>
           </div>
@@ -157,7 +158,7 @@ export function FairnessClient() {
               <RefreshCw className={cn("size-3.5", rotate.isPending && "animate-spin")} />
               {rotate.isPending ? "Rotating…" : "Rotate & reveal"}
             </Button>
-            <p className="text-[9px] leading-4 text-muted/45">Rotating retires the current pair and keeps every past hand verifiable.</p>
+            <p className="text-[9px] leading-4 text-muted/45">Rotating retires the current pair and keeps every past round verifiable.</p>
           </div>
         </section>
 
@@ -184,7 +185,7 @@ export function FairnessClient() {
         <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
           <div className="flex items-center gap-2.5">
             <FileCheck2 className="size-3.5 text-gold/70" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Verify a hand</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Verify a round</p>
           </div>
           <span className="text-[9px] uppercase tracking-[0.14em] text-muted/40">Seed data</span>
         </div>
@@ -200,10 +201,10 @@ export function FairnessClient() {
                   selectedBetId === bet.id ? "border-gold/40 bg-gold/10 text-gold" : "border-line bg-surface-2 text-muted hover:text-ink",
                 )}
               >
-                Blackjack · {new Date(bet.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {getGameMetadata(bet.gameId)?.name ?? bet.gameId} · {new Date(bet.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </button>
             ))}
-            {recentBets.data?.bets.length === 0 ? <p className="text-[10px] text-muted/55">Play a hand to generate verification data.</p> : null}
+            {recentBets.data?.bets.length === 0 ? <p className="text-[10px] text-muted/55">Play a round to generate verification data.</p> : null}
           </div>
           {selectedBetId ? (
             <div className="mt-4 rounded-xl border border-line/60 bg-[#0a0e0c] p-4">
@@ -213,7 +214,9 @@ export function FairnessClient() {
                 verification.data.revealed ? (
                   <div>
                     <div className="flex items-center justify-between">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-green">Revealed</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-green">
+                        {getGameMetadata(verification.data.gameId)?.name ?? "Round"} · Revealed
+                      </p>
                       <button
                         type="button"
                         onClick={() => copy(JSON.stringify(verification.data, null, 2), "Verification data")}

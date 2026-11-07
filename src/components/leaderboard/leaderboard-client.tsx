@@ -62,7 +62,7 @@ export function LeaderboardClient() {
           </div>
           <h1 className="mt-4 text-4xl text-ink sm:text-5xl">Leaderboard</h1>
           <p className="mt-3 max-w-xl text-[12px] leading-5 text-muted">
-            The sharpest seats at the table. Rankings use settled blackjack hands only; faucet refills and bonuses do
+            The sharpest seats at the table. Rankings use settled originals rounds only; faucet refills and bonuses do
             not count toward profit.
           </p>
         </div>
@@ -120,7 +120,7 @@ export function LeaderboardClient() {
                   <Avatar row={row} size="lg" />
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-medium text-ink">{row.name}</p>
-                    <p className="mt-0.5 text-[9px] text-muted/50">{row.totalBets} hands · {formatMultiplier(row.biggestMultiplier)} best</p>
+                    <p className="mt-0.5 text-[9px] text-muted/50">{row.totalBets} rounds · {formatMultiplier(row.biggestMultiplier)} best</p>
                   </div>
                 </div>
                 <p className={cn("mt-5 font-display text-2xl tabular-nums", metric === "profit" && row.netProfitCents < 0 ? "text-red/80" : "text-ink")}>
@@ -173,7 +173,7 @@ export function LeaderboardClient() {
                               {row.name}
                               {row.isCurrentUser ? <span className="ml-2 rounded bg-gold/15 px-1.5 py-0.5 text-[8px] text-gold">YOU</span> : null}
                             </p>
-                            <p className="text-[9px] text-muted/40">{row.totalBets} hands</p>
+                            <p className="text-[9px] text-muted/40">{row.totalBets} rounds</p>
                           </div>
                         </div>
                       </td>

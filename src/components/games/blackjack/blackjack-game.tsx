@@ -26,7 +26,7 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
   const tableRef = useRef<HTMLDivElement>(null);
   const [amount, setAmount] = useState("1.00");
   const { activeBet, setActiveBet } = useProgressionBet(game.id);
-  const result = useGameResult();
+  const result = useGameResult("Blackjack");
   const state = activeBet?.result as BlackjackState | undefined;
   const isActive = activeBet?.status === "active";
   const settled = activeBet?.status === "settled";
@@ -96,7 +96,7 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <Link href="/" className="grid size-8 place-items-center rounded-full border border-line text-muted transition hover:border-line-strong hover:text-ink" aria-label="Back to lobby">
+            <Link href="/#games" className="grid size-8 place-items-center rounded-full border border-line text-muted transition hover:border-line-strong hover:text-ink" aria-label="Back to originals">
               <ArrowLeft className="size-3.5" />
             </Link>
             <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-muted/55">

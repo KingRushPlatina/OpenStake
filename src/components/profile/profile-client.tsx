@@ -7,6 +7,7 @@ import { Check, Pencil, ShieldCheck, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
 import { useSession } from "@/components/session-provider";
+import { getGameMetadata } from "@/modules/games/catalog";
 import { Button } from "@/components/ui/button";
 import { cn, avatarTone, initials } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
@@ -82,7 +83,7 @@ export function ProfileClient() {
         {[
           { label: "Net profit", value: formatCents(session.stats.netProfitCents), tone: session.stats.netProfitCents >= 0 ? "text-green" : "text-red" },
           { label: "Total wagered", value: formatCents(session.stats.wageredCents, { compact: true }), tone: "text-ink" },
-          { label: "Hands played", value: session.stats.totalBets.toLocaleString(), tone: "text-ink" },
+          { label: "Rounds played", value: session.stats.totalBets.toLocaleString(), tone: "text-ink" },
           { label: "Best return", value: formatMultiplier(session.stats.biggestMultiplier), tone: "text-gold" },
         ].map((stat) => (
           <div key={stat.label} className="border-l border-line/70 pl-4">
@@ -94,12 +95,12 @@ export function ProfileClient() {
 
       <section className="surface overflow-hidden">
         <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Recent hands</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Recent rounds</p>
           <span className="text-[9px] uppercase tracking-[0.14em] text-muted/45">Across the table</span>
         </div>
         {bets.length === 0 ? (
           <div className="flex h-36 flex-col items-center justify-center gap-3">
-            <p className="text-[11px] text-muted/60">No hands yet.</p>
+            <p className="text-[11px] text-muted/60">No rounds yet.</p>
             <Button asChild size="sm" variant="secondary">
               <Link href="/casino/blackjack">Take a seat</Link>
             </Button>
@@ -109,7 +110,7 @@ export function ProfileClient() {
             <table className="w-full min-w-[580px] text-left">
               <thead>
                 <tr className="text-[8px] uppercase tracking-[0.16em] text-muted/40">
-                  <th className="px-5 py-3 font-medium">Hand</th>
+                  <th className="px-5 py-3 font-medium">Game</th>
                   <th className="px-3 py-3 text-right font-medium">Stake</th>
                   <th className="px-3 py-3 text-right font-medium">Return</th>
                   <th className="px-3 py-3 text-right font-medium">Multiplier</th>
@@ -119,12 +120,16 @@ export function ProfileClient() {
               <tbody className="divide-y divide-line/40">
                 {bets.map((bet) => {
                   const profit = bet.payoutCents - bet.amountCents;
+                  const active = bet.status === "active";
                   return (
                     <tr key={bet.id} className="text-[11px] transition hover:bg-white/[0.015]">
-                      <td className="px-5 py-3 font-medium text-ink">Blackjack</td>
+                      <td className="px-5 py-3 font-medium text-ink">
+                        {getGameMetadata(bet.gameId)?.name ?? bet.gameId}
+                        {active ? <span className="ml-2 rounded bg-gold/15 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-gold">Live</span> : null}
+                      </td>
                       <td className="px-3 py-3 text-right text-muted tabular-nums">{formatCents(bet.amountCents)}</td>
-                      <td className={cn("px-3 py-3 text-right font-semibold tabular-nums", profit > 0 ? "text-green" : profit === 0 ? "text-ink" : "text-muted/60")}>
-                        {formatCents(bet.payoutCents)}
+                      <td className={cn("px-3 py-3 text-right font-semibold tabular-nums", active ? "text-gold/70" : profit > 0 ? "text-green" : profit === 0 ? "text-ink" : "text-muted/60")}>
+                        {active ? "In play" : formatCents(bet.payoutCents)}
                       </td>
                       <td className="px-3 py-3 text-right text-muted tabular-nums">{formatMultiplier(bet.multiplier)}</td>
                       <td className="px-5 py-3 text-right text-[9px] text-muted/45">

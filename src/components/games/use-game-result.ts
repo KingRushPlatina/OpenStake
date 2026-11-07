@@ -8,7 +8,7 @@ import type { PublicBet } from "@/modules/games/types";
 import { ApiError } from "@/lib/api-client";
 import { formatCents, formatMultiplier } from "@/lib/money";
 
-export function useGameResult() {
+export function useGameResult(gameName: string) {
   const { setBalance } = useSession();
   const queryClient = useQueryClient();
 
@@ -19,12 +19,12 @@ export function useGameResult() {
       queryClient.invalidateQueries({ queryKey: ["session"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       if (bet.status === "settled" && bet.payoutCents > bet.amountCents && bet.multiplier >= 2.5) {
-        toast.success(`Blackjack pays ${formatMultiplier(bet.multiplier)}`, {
+        toast.success(`${gameName} pays ${formatMultiplier(bet.multiplier)}`, {
           description: `${formatCents(bet.payoutCents)} returned to your balance.`,
         });
       }
     },
-    [queryClient, setBalance],
+    [gameName, queryClient, setBalance],
   );
 
   const onError = useCallback((error: unknown) => {

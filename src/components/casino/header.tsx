@@ -20,6 +20,7 @@ import { formatCents } from "@/lib/money";
 import { Logo } from "./logo";
 
 const navItems = [
+  { href: "/#games", label: "Originals" },
   { href: "/casino/blackjack", label: "Blackjack" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/fairness", label: "Fairness" },
@@ -50,12 +51,15 @@ export function Header() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-[72px] border-b border-line/80 bg-bg/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-full max-w-[1480px] items-center gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-full max-w-[1480px] items-center gap-3 px-4 sm:gap-6 sm:px-6 lg:px-8">
         <Logo />
 
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
-            const active = pathname === item.href || (item.href === "/casino/blackjack" && pathname.startsWith("/casino"));
+            const active =
+              item.href === "/#games"
+                ? pathname === "/" || (pathname.startsWith("/casino") && pathname !== "/casino/blackjack")
+                : pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -105,7 +109,7 @@ export function Header() {
             href="/wallet"
             className="flex h-9 items-center gap-2 rounded-full border border-line bg-surface px-3 transition hover:border-line-strong"
           >
-            <span className="text-[11px] text-muted">Balance</span>
+            <span className="hidden text-[11px] text-muted sm:inline">Balance</span>
             <span className="tabular-nums text-[12px] font-semibold text-ink">{formatCents(session.wallet.balanceCents)}</span>
           </Link>
 

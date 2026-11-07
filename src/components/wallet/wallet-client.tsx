@@ -14,8 +14,8 @@ import type { TransactionRow } from "@/types/api";
 const typeLabels: Record<string, string> = {
   welcome: "Welcome credit",
   faucet: "Faucet refill",
-  bet: "Hand placed",
-  payout: "Hand return",
+  bet: "Wager placed",
+  payout: "Wager return",
   refund: "Refund",
 };
 
