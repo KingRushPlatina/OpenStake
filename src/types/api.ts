@@ -46,7 +46,6 @@ export type LeaderboardRow = {
   rank: number;
   userId: string;
   name: string;
-  isBot: boolean;
   totalBets: number;
   wageredCents: number;
   payoutCents: number;

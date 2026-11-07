@@ -1,6 +1,4 @@
-import { getContainer } from "@/platform/container";
 import { getEventBus, type RealtimeEvent } from "@/modules/realtime/event-bus";
-import { startDemoLiquidity } from "@/modules/realtime/demo-liquidity";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,9 +22,6 @@ export async function GET(request: Request) {
       heartbeat = setInterval(() => {
         send({ type: "heartbeat", at: new Date().toISOString() });
       }, 20_000);
-      startDemoLiquidity(getContainer().users).catch((error) => {
-        console.error(error);
-      });
       request.signal.addEventListener("abort", () => {
         if (heartbeat) clearInterval(heartbeat);
         unsubscribe();

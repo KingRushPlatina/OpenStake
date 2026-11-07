@@ -26,8 +26,7 @@ Instant games settle in a single request. Table and progression games use an exp
 - Ledger wallet with idempotent bets, transactional row locks and refunds
 - Provably fair seed pairs with SHA-256 commitments and HMAC-SHA256 outcomes
 - Per-round verification data, recent bets and previous seed pairs
-- Leaderboard by net profit, biggest win and total wagered
-- Demo liquidity bots for the live feed and leaderboard depth, configurable by environment
+- Leaderboard and live feed driven entirely by real player activity
 - Responsive dark interface with original OpenStake art direction
 - No source comments: naming, types, tests and structure carry the intent
 
@@ -88,9 +87,9 @@ src/
     betting/           bet orchestration and wallet settlement
     wallet/            ledger, faucet and money primitives
     fairness/          seed pair lifecycle
-    identity/          temporary seats and demo personas
+    identity/          temporary seats and player profiles
     leaderboard/       ranking and transaction history
-    realtime/          event bus and demo liquidity
+    realtime/          event bus and live bet feed
   platform/
     auth/              signed guest sessions
     db/                Drizzle schema, migrations and PGlite client
@@ -117,9 +116,10 @@ HMAC-SHA256(serverSeed, clientSeed:nonce:cursor)
 
 Rotating a seed pair reveals the previous server seed on the fairness page. The same page lists recent rounds and returns the full verification payload once the seed is revealed.
 
-## Demo liquidity
+## Live feed
 
-Set `DEMO_LIQUIDITY=false` to disable simulated players in the live feed and leaderboard. Demo personas are flagged internally as bots and never touch guest wallets.
+The live feed and the leaderboard read only from real player sessions. There are no simulated players,
+seeded personas or background bots in the product.
 
 ## Database note
 

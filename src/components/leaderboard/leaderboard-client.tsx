@@ -79,7 +79,7 @@ export function LeaderboardClient() {
             </p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Hands</p>
+            <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Rounds</p>
             <p className="mt-1 font-display text-2xl text-ink">{session.stats.totalBets.toLocaleString()}</p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export function LeaderboardClient() {
                 <th className="px-3 py-3 text-right font-medium">Net profit</th>
                 <th className="px-3 py-3 text-right font-medium">Wagered</th>
                 <th className="px-3 py-3 text-right font-medium">Biggest win</th>
-                <th className="px-5 py-3 text-right font-medium">Best hand</th>
+                <th className="px-5 py-3 text-right font-medium">Best round</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line/40">

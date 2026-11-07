@@ -16,7 +16,7 @@ export function createContainer() {
   const ledger = new LedgerService(ids, clock);
   const betting = new BettingService(ids, clock, ledger, seeds);
   const faucet = new FaucetService(ids, clock, ledger);
-  const leaderboard = new LeaderboardService(users);
+  const leaderboard = new LeaderboardService();
   return { ids, clock, seeds, users, ledger, betting, faucet, leaderboard };
 }
 

@@ -29,6 +29,13 @@
       "when": 1794081736701,
       "tag": "0003_blue_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794086446196,
+      "tag": "0004_white_lethal_legion",
+      "breakpoints": true
     }
   ]
 }

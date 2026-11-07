@@ -19,7 +19,6 @@ export async function GET() {
       userId = session.user.id;
       await setSessionCookie(userId);
     }
-    await container.users.ensureDemoBots();
     return NextResponse.json({ ...session, serverTime: new Date().toISOString() });
   } catch (error) {
     return errorResponse(error);

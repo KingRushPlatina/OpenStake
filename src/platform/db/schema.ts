@@ -17,7 +17,6 @@ export const users = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    isBot: boolean("is_bot").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
   },

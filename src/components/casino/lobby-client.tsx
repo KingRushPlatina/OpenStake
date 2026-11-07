@@ -159,12 +159,17 @@ export function LobbyClient() {
             </Link>
           </div>
           <div className="divide-y divide-line/40">
-            {top.length === 0 ? (
+            {leaderboard.isLoading ? (
               Array.from({ length: 5 }, (_, index) => (
                 <div key={index} className="flex h-[52px] animate-pulse items-center px-4">
                   <div className="h-4 w-full rounded bg-white/[0.03]" />
                 </div>
               ))
+            ) : top.length === 0 ? (
+              <div className="flex h-[220px] flex-col items-center justify-center gap-1 px-4 text-center">
+                <p className="text-[11px] text-muted">No rounds on the board yet.</p>
+                <p className="text-[9px] text-muted/45">Play a hand and you take the first seat.</p>
+              </div>
             ) : (
               top.map((row) => (
                 <div key={row.userId} className={cn("flex items-center gap-3 px-4 py-3", row.isCurrentUser && "bg-gold/[0.04]")}>

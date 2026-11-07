@@ -1,16 +1,11 @@
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { getDatabase } from "@/platform/db/client";
 import { ledgerEntries, playerStats, users } from "@/platform/db/schema";
-import type { UserService } from "@/modules/identity/user-service";
-import { env } from "@/platform/env";
 
 export type LeaderboardMetric = "profit" | "biggest-win" | "wagered";
 
 export class LeaderboardService {
-  constructor(private readonly users: UserService) {}
-
   async getLeaderboard(metric: LeaderboardMetric, currentUserId?: string) {
-    await this.users.ensureDemoBots();
     const database = await getDatabase();
     const metricColumn =
       metric === "biggest-win"
@@ -18,11 +13,10 @@ export class LeaderboardService {
         : metric === "wagered"
           ? playerStats.wageredCents
           : playerStats.netProfitCents;
-    const baseQuery = database
+    const rows = await database
       .select({
         userId: users.id,
         name: users.name,
-        isBot: users.isBot,
         totalBets: playerStats.totalBets,
         wageredCents: playerStats.wageredCents,
         payoutCents: playerStats.payoutCents,
@@ -31,8 +25,8 @@ export class LeaderboardService {
         biggestMultiplier: playerStats.biggestMultiplier,
       })
       .from(playerStats)
-      .innerJoin(users, eq(users.id, playerStats.userId));
-    const rows = await (env.DEMO_LIQUIDITY ? baseQuery : baseQuery.where(eq(users.isBot, false)))
+      .innerJoin(users, eq(users.id, playerStats.userId))
+      .where(gt(playerStats.totalBets, 0))
       .orderBy(desc(metricColumn))
       .limit(50);
 
@@ -40,6 +34,7 @@ export class LeaderboardService {
     if (currentUserId) {
       const [current] = await database
         .select({
+          totalBets: playerStats.totalBets,
           netProfitCents: playerStats.netProfitCents,
           biggestWinCents: playerStats.biggestWinCents,
           wageredCents: playerStats.wageredCents,
@@ -47,7 +42,7 @@ export class LeaderboardService {
         .from(playerStats)
         .where(eq(playerStats.userId, currentUserId))
         .limit(1);
-      if (current) {
+      if (current && current.totalBets > 0) {
         const currentValue =
           metric === "biggest-win"
             ? current.biggestWinCents
@@ -57,7 +52,8 @@ export class LeaderboardService {
         const [higher] = await database
           .select({ count: sql<number>`count(*)::int` })
           .from(playerStats)
-          .where(env.DEMO_LIQUIDITY ? gt(metricColumn, currentValue) : and(gt(metricColumn, currentValue), eq(users.isBot, false)));
+          .innerJoin(users, eq(users.id, playerStats.userId))
+          .where(and(gt(metricColumn, currentValue), gt(playerStats.totalBets, 0)));
         currentRank = (higher?.count ?? 0) + 1;
       }
     }
@@ -68,7 +64,6 @@ export class LeaderboardService {
         rank: index + 1,
         userId: row.userId,
         name: row.name,
-        isBot: row.isBot,
         totalBets: row.totalBets,
         wageredCents: row.wageredCents,
         payoutCents: row.payoutCents,

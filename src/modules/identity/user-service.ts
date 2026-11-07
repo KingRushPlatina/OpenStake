@@ -1,7 +1,6 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { getDatabase } from "@/platform/db/client";
-import { env } from "@/platform/env";
 import { ledgerEntries, playerStats, users, wallets } from "@/platform/db/schema";
 import { AppError } from "@/lib/errors";
 import type { Clock, IdGenerator } from "@/modules/wallet/constants";
@@ -54,29 +53,6 @@ function generatedName() {
   const adjective = ADJECTIVES[randomInt(ADJECTIVES.length)];
   const noun = NOUNS[randomInt(NOUNS.length)];
   return `${adjective}${noun}${randomInt(10, 100)}`;
-}
-
-function botName(index: number) {
-  const adjective = ADJECTIVES[index % ADJECTIVES.length];
-  const noun = NOUNS[(index * 7 + 3) % NOUNS.length];
-  return `${adjective}${noun}`;
-}
-
-function botStats(index: number) {
-  const totalBets = 120 + ((index * 37) % 1_900);
-  const averageBet = 100 + ((index * 211) % 4_900);
-  const wagered = totalBets * averageBet;
-  const edge = (((index * 13) % 9) - 4) / 100;
-  const profit = Math.round(wagered * edge);
-  const biggestWin = 25_000 + ((index * 44_221) % 480_000);
-  return {
-    totalBets,
-    wageredCents: wagered,
-    payoutCents: wagered + profit,
-    netProfitCents: profit,
-    biggestWinCents: biggestWin,
-    biggestMultiplier: Math.round((2 + ((index * 211) % 4_800) / 100) * 100) / 100,
-  };
 }
 
 export class UserService {
@@ -183,39 +159,5 @@ export class UserService {
     }
     await database.update(users).set({ name: clean }).where(eq(users.id, userId));
     return this.getSession(userId);
-  }
-
-  async ensureDemoBots() {
-    if (!env.DEMO_LIQUIDITY) return;
-    const database = await getDatabase();
-    const [existing] = await database
-      .select({ count: sql<number>`count(*)::int` })
-      .from(users)
-      .where(eq(users.isBot, true));
-    if ((existing?.count ?? 0) >= 40) return;
-    const count = 48;
-    for (let index = 0; index < count; index += 1) {
-      const userId = `bot_${String(index + 1).padStart(2, "0")}`;
-      const name = botName(index);
-      const stats = botStats(index);
-      await database
-        .insert(users)
-        .values({ id: userId, name, isBot: true, lastSeenAt: this.clock.now() })
-        .onConflictDoNothing();
-      await database
-        .insert(wallets)
-        .values({ userId, balanceCents: STARTING_BALANCE_CENTS + stats.netProfitCents })
-        .onConflictDoNothing();
-      await database.insert(playerStats).values({ userId, ...stats }).onConflictDoNothing();
-    }
-  }
-
-  async listBots() {
-    const database = await getDatabase();
-    return database
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .where(eq(users.isBot, true))
-      .orderBy(users.id);
   }
 }
