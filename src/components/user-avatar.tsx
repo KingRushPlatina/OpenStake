@@ -53,7 +53,7 @@ export function AvatarPresetMark({
         className,
       )}
     >
-      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.28),transparent_55%)]" />
+      {/* Sits under the portrait so a failed image still shows a face. */}
       <span
         className={cn("avatar-meme relative leading-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]", emojiClasses[size])}
         style={{ animationDelay: `${(index % 7) * 0.23}s` }}
@@ -61,6 +61,15 @@ export function AvatarPresetMark({
       >
         {entry.emoji}
       </span>
+      <Image
+        src={entry.image}
+        alt=""
+        fill
+        sizes={`${pixelSizes[size]}px`}
+        unoptimized
+        className="avatar-photo pointer-events-none absolute inset-0 size-full object-cover"
+        style={{ animationDelay: `${(index % 7) * 0.29}s` }}
+      />
     </span>
   );
 }

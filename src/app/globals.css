@@ -362,6 +362,25 @@ button {
   transform-origin: 50% 70%;
 }
 
+@keyframes avatar-photo-bob {
+  0%,
+  100% {
+    transform: scale(1.14) translate3d(0, 0, 0) rotate(-1.4deg);
+  }
+  33% {
+    transform: scale(1.2) translate3d(-2%, -1.5%, 0) rotate(1.6deg);
+  }
+  66% {
+    transform: scale(1.12) translate3d(2%, 1%, 0) rotate(-0.8deg);
+  }
+}
+
+.avatar-photo {
+  animation: avatar-photo-bob 4.8s ease-in-out infinite;
+  transform-origin: 50% 42%;
+  will-change: transform;
+}
+
 .roulette-hotspot {
   fill: transparent;
   cursor: pointer;

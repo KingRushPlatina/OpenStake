@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import NextImage from "next/image";
-import { Camera, Trash2 } from "lucide-react";
+import { Camera, Check, Trash2 } from "lucide-react";
 import { avatarPresets, type AvatarPreset } from "@/modules/identity/avatars";
 import { AvatarPresetMark } from "@/components/user-avatar";
 import { cn } from "@/lib/client-utils";
@@ -78,12 +78,12 @@ export function AvatarPicker({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-medium text-muted">Meme & cute</p>
+        <p className="text-[10px] font-medium text-muted">Meme faces</p>
         <p className="text-[9px] text-muted/45">
           {value.image ? "Custom photo" : selectedPreset.label} · {avatarPresets.length} faces
         </p>
       </div>
-      <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
+      <div className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-6">
         {avatarPresets.map((preset) => {
           const selected = !value.image && value.preset === preset.id;
           return (
@@ -95,12 +95,31 @@ export function AvatarPicker({
               aria-label={preset.label}
               title={preset.label}
               aria-pressed={selected}
-              className={cn(
-                "relative grid place-items-center rounded-full transition disabled:opacity-50",
-                selected ? "ring-2 ring-gold ring-offset-2 ring-offset-surface" : "opacity-80 hover:opacity-100",
-              )}
+              className="group flex min-w-0 flex-col items-center gap-1.5 rounded-xl p-1 transition disabled:opacity-50"
             >
-              <AvatarPresetMark preset={preset.id} size="md" />
+              <span
+                className={cn(
+                  "relative rounded-full transition duration-200",
+                  selected
+                    ? "ring-2 ring-gold ring-offset-2 ring-offset-surface"
+                    : "opacity-85 group-hover:scale-105 group-hover:opacity-100",
+                )}
+              >
+                <AvatarPresetMark preset={preset.id} size="xl" />
+                {selected ? (
+                  <span className="absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-gold text-[#14100a] ring-2 ring-surface">
+                    <Check className="size-2.5" strokeWidth={3} />
+                  </span>
+                ) : null}
+              </span>
+              <span
+                className={cn(
+                  "w-full truncate text-center text-[8px] leading-none",
+                  selected ? "font-semibold text-gold" : "text-muted/55",
+                )}
+              >
+                {preset.label}
+              </span>
             </button>
           );
         })}
@@ -122,7 +141,7 @@ export function AvatarPicker({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium text-ink">{value.image ? "Photo uploaded" : "Or upload a photo"}</p>
+          <p className="text-[11px] font-medium text-ink">{value.image ? "Photo uploaded" : "Or upload your own"}</p>
           <p className="mt-0.5 text-[9px] text-muted/55">PNG, JPEG or WebP. Cropped to a square.</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
