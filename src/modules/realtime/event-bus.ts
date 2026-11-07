@@ -5,6 +5,8 @@ export type LiveBetEvent = {
   id: string;
   userId: string;
   name: string;
+  avatarPreset: string | null;
+  avatarUrl: string | null;
   gameId: string;
   gameName: string;
   amountCents: number;

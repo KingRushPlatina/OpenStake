@@ -2,6 +2,9 @@ export type SessionPayload = {
   user: {
     id: string;
     name: string;
+    avatarPreset: string | null;
+    avatarUrl: string | null;
+    onboarded: boolean;
     createdAt: string;
   };
   wallet: {
@@ -33,6 +36,8 @@ export type LiveBet = {
   id: string;
   userId: string;
   name: string;
+  avatarPreset: string | null;
+  avatarUrl: string | null;
   gameId: string;
   gameName: string;
   amountCents: number;
@@ -46,6 +51,8 @@ export type LeaderboardRow = {
   rank: number;
   userId: string;
   name: string;
+  avatarPreset: string | null;
+  avatarUrl: string | null;
   totalBets: number;
   wageredCents: number;
   payoutCents: number;

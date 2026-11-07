@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Header } from "./header";
 import { MobileNav } from "./mobile-nav";
+import { OnboardingGate } from "@/components/onboarding/onboarding-gate";
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <MobileNav />
+      <OnboardingGate />
     </div>
   );
 }

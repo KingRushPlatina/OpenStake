@@ -2,7 +2,8 @@
 
 import { Radio } from "lucide-react";
 import { useLiveBets } from "./use-live-bets";
-import { cn, avatarTone, initials } from "@/lib/client-utils";
+import { UserAvatar } from "@/components/user-avatar";
+import { cn } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
 
 export function LiveBets({ limit = 18, className }: { limit?: number; className?: string }) {
@@ -28,14 +29,13 @@ export function LiveBets({ limit = 18, className }: { limit?: number; className?
           <div className="divide-y divide-line/40">
             {bets.map((bet) => (
               <div key={bet.id} className="live-row flex items-center gap-3 px-4 py-2.5">
-                <span
-                  className={cn(
-                    "grid size-6 shrink-0 place-items-center rounded-full border border-white/5 bg-gradient-to-br text-[8px] font-bold text-white/90",
-                    avatarTone(bet.userId),
-                  )}
-                >
-                  {initials(bet.name)}
-                </span>
+                <UserAvatar
+                  name={bet.name}
+                  userId={bet.userId}
+                  avatarPreset={bet.avatarPreset}
+                  avatarUrl={bet.avatarUrl}
+                  size="xs"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-[11px] font-medium text-ink">{bet.name}</p>

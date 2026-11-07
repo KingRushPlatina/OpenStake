@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDatabase, type Database } from "@/platform/db/client";
 import { bets, seedPairs, users, wallets } from "@/platform/db/schema";
 import { decryptSecret, FairRandom } from "@/lib/fairness";
@@ -13,6 +13,12 @@ import { getEventBus, type LiveBetEvent } from "@/modules/realtime/event-bus";
 import type { SeedService } from "@/modules/fairness/seed-service";
 
 type BetRow = typeof bets.$inferSelect;
+
+type LivePlayer = {
+  name: string;
+  avatarPreset: string | null;
+  hasAvatar: boolean;
+};
 
 type SeedContext = {
   id: string;
@@ -138,11 +144,19 @@ export class BettingService {
             settledAt: now,
           })
           .returning();
-        const [user] = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
-        return { bet: inserted, balance, userName: user?.name ?? "Player" };
+        const [player] = await tx
+          .select({
+            name: users.name,
+            avatarPreset: users.avatarPreset,
+            hasAvatar: sql<boolean>`${users.avatarImage} is not null`,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        return { bet: inserted, balance, player: player ?? null };
       });
 
-      this.publish(result.bet, result.userName, game.metadata);
+      this.publish(result.bet, result.player, game.metadata);
       return this.hydrate(result.bet, result.balance);
     } catch (error) {
       const duplicate = await this.findByIdempotencyKey(userId, idempotencyKey);
@@ -227,10 +241,18 @@ export class BettingService {
             settledAt: settled ? now : null,
           })
           .returning();
-        const [user] = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
-        return { bet: inserted, balance, userName: user?.name ?? "Player" };
+        const [player] = await tx
+          .select({
+            name: users.name,
+            avatarPreset: users.avatarPreset,
+            hasAvatar: sql<boolean>`${users.avatarImage} is not null`,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        return { bet: inserted, balance, player: player ?? null };
       });
-      if (result.bet.status === "settled") this.publish(result.bet, result.userName, game.metadata);
+      if (result.bet.status === "settled") this.publish(result.bet, result.player, game.metadata);
       return this.hydrate(result.bet, result.balance);
     } catch (error) {
       const duplicate = await this.findByIdempotencyKey(userId, idempotencyKey);
@@ -257,7 +279,7 @@ export class BettingService {
         .limit(1);
       if (!row) throw new AppError("NOT_FOUND", "Bet not found", 404);
       if (row.lastActionKey === actionKey) {
-        return { bet: row, balance: await this.getBalance(tx, userId), userName: null, settledNow: false };
+        return { bet: row, balance: await this.getBalance(tx, userId), player: null, settledNow: false };
       }
       if (row.status !== "active") throw new AppError("GAME_STATE", "This round is already settled", 400);
       const snapshot: ProgressionSnapshot = {
@@ -322,11 +344,19 @@ export class BettingService {
         })
         .where(eq(bets.id, betId))
         .returning();
-      const [user] = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
-      return { bet: updated, balance, userName: user?.name ?? "Player", settledNow: settled };
+      const [player] = await tx
+        .select({
+          name: users.name,
+          avatarPreset: users.avatarPreset,
+          hasAvatar: sql<boolean>`${users.avatarImage} is not null`,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      return { bet: updated, balance, player: player ?? null, settledNow: settled };
     });
 
-    if (result.settledNow) this.publish(result.bet, result.userName ?? "Player", game.metadata);
+    if (result.settledNow) this.publish(result.bet, result.player, game.metadata);
     return this.hydrate(result.bet, result.balance);
   }
 
@@ -463,13 +493,15 @@ export class BettingService {
     return wallet?.balanceCents ?? 0;
   }
 
-  private publish(row: BetRow, userName: string, metadata: GameMetadata) {
+  private publish(row: BetRow, player: LivePlayer | null, metadata: GameMetadata) {
     if (row.status !== "settled") return;
     const event: LiveBetEvent = {
       type: "live-bet",
       id: row.id,
       userId: row.userId,
-      name: userName,
+      name: player?.name ?? "Player",
+      avatarPreset: player?.avatarPreset ?? null,
+      avatarUrl: player?.hasAvatar ? `/api/avatars/${row.userId}` : null,
       gameId: row.gameId,
       gameName: metadata.name,
       amountCents: row.amountCents,

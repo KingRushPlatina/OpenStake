@@ -3,22 +3,29 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Pencil, ShieldCheck, Trophy } from "lucide-react";
+import { Camera, Check, Pencil, ShieldCheck, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
+import { UserAvatar } from "@/components/user-avatar";
+import { AvatarPicker, type AvatarSelection } from "@/components/avatars/avatar-picker";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useSession } from "@/components/session-provider";
 import { getGameMetadata } from "@/modules/games/catalog";
 import { Button } from "@/components/ui/button";
-import { cn, avatarTone, initials } from "@/lib/client-utils";
+import { cn } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
 import type { SessionPayload } from "@/types/api";
 import type { PublicBet } from "@/modules/games/types";
+import { toAvatarPreset } from "@/modules/identity/avatars";
 
 export function ProfileClient() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(session.user.name);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const currentPreset = toAvatarPreset(session.user.avatarPreset);
+  const [avatar, setAvatar] = useState<AvatarSelection>({ preset: currentPreset, image: null });
   const history = useQuery({
     queryKey: ["history", "profile"],
     queryFn: () => apiFetch<{ history: PublicBet[] }>("/api/history?limit=20"),
@@ -32,15 +39,50 @@ export function ProfileClient() {
     },
     onError: (error) => toast.error("Could not update name", { description: error.message }),
   });
+  const updateAvatar = useMutation({
+    mutationFn: () =>
+      apiFetch<SessionPayload>("/api/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          avatarPreset: avatar.image ? null : avatar.preset,
+          avatarImage: avatar.image,
+        }),
+      }),
+    onSuccess: (payload) => {
+      queryClient.setQueryData(["session"], payload);
+      setAvatarOpen(false);
+      toast.success("Avatar updated");
+    },
+    onError: (error) => toast.error("Could not update avatar", { description: error.message }),
+  });
+
+  const openAvatar = () => {
+    setAvatar({ preset: currentPreset, image: null });
+    setAvatarOpen(true);
+  };
   const bets = history.data?.history ?? [];
 
   return (
     <div className="space-y-8">
       <section className="flex flex-col gap-6 border-b border-line/70 pb-8 md:flex-row md:items-end md:justify-between">
         <div className="flex items-center gap-4">
-          <span className={cn("grid size-16 place-items-center rounded-2xl border border-white/5 bg-gradient-to-br font-display text-xl text-white/90", avatarTone(session.user.id))}>
-            {initials(session.user.name)}
-          </span>
+          <div className="relative">
+            <UserAvatar
+              name={session.user.name}
+              userId={session.user.id}
+              avatarPreset={session.user.avatarPreset}
+              avatarUrl={session.user.avatarUrl}
+              size="xl"
+            />
+            <button
+              type="button"
+              onClick={openAvatar}
+              aria-label="Change avatar"
+              className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border border-line bg-surface-2 text-muted transition hover:border-line-strong hover:text-ink"
+            >
+              <Camera className="size-3" />
+            </button>
+          </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/70">Temporary seat</p>
             {editing ? (
@@ -143,6 +185,26 @@ export function ProfileClient() {
           </div>
         )}
       </section>
+
+      <Dialog open={avatarOpen} onOpenChange={setAvatarOpen}>
+        <DialogContent className="p-6 sm:p-7">
+          <DialogTitle className="font-display text-2xl">Change avatar</DialogTitle>
+          <DialogDescription className="mt-1.5">
+            Pick a preset or upload a photo. Your seat updates everywhere instantly.
+          </DialogDescription>
+          <div className="mt-5">
+            <AvatarPicker value={avatar} onChange={setAvatar} disabled={updateAvatar.isPending} />
+          </div>
+          <div className="mt-5 flex items-center justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setAvatarOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" size="sm" disabled={updateAvatar.isPending} onClick={() => updateAvatar.mutate()}>
+              {updateAvatar.isPending ? "Saving…" : "Save avatar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

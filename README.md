@@ -21,7 +21,8 @@ Instant games settle in a single request. Table and progression games use an exp
 
 ## Platform
 
-- Automatic temporary guest seats with no signup or password
+- First-visit seat setup: display name, avatar preset or uploaded photo, no password or email
+- Automatic temporary guest seats that live in the browser session
 - $100 starting balance and an instant top-up to $100 whenever the balance drops below target
 - Ledger wallet with idempotent bets, transactional row locks and refunds
 - Provably fair seed pairs with SHA-256 commitments and HMAC-SHA256 outcomes
@@ -82,12 +83,14 @@ src/
     casino/            shell, lobby, game tiles, live feed and table preview
     games/             shared game shell, controls, history and each game
     ui/                Radix-based primitives and design-system components
+    onboarding/        first-visit seat setup dialog
+    avatars/           avatar picker with preset and photo upload
   modules/
     games/             catalog, cards, instant engines, stateful engines, paytables
     betting/           bet orchestration and wallet settlement
     wallet/            ledger, faucet and money primitives
     fairness/          seed pair lifecycle
-    identity/          temporary seats and player profiles
+    identity/          temporary seats, player profiles and avatar presets
     leaderboard/       ranking and transaction history
     realtime/          event bus and live bet feed
   platform/

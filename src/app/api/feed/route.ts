@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getDatabase } from "@/platform/db/client";
 import { bets, users } from "@/platform/db/schema";
 import { getGameMetadata } from "@/modules/games/catalog";
@@ -19,6 +19,8 @@ export async function GET(request: Request) {
         id: bets.id,
         userId: bets.userId,
         name: users.name,
+        avatarPreset: users.avatarPreset,
+        hasAvatarImage: sql<boolean>`${users.avatarImage} is not null`,
         gameId: bets.gameId,
         amountCents: bets.amountCents,
         payoutCents: bets.payoutCents,
@@ -37,6 +39,8 @@ export async function GET(request: Request) {
       id: row.id,
       userId: row.userId,
       name: row.name,
+      avatarPreset: row.avatarPreset,
+      avatarUrl: row.hasAvatarImage ? `/api/avatars/${row.userId}` : null,
       gameId: row.gameId,
       gameName: getGameMetadata(row.gameId)?.name ?? row.gameId,
       amountCents: row.amountCents,

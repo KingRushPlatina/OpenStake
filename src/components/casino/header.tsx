@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, LayoutGrid, Loader2, Plus, ShieldCheck, Trophy, UserRound, Wallet } from "lucide-react";
 import { useSession } from "@/components/session-provider";
+import { UserAvatar } from "@/components/user-avatar";
 import { useFaucetClaim } from "@/components/casino/use-faucet-claim";
 import { GameMark } from "@/components/casino/game-mark";
 import { Button } from "@/components/ui/button";
@@ -118,9 +119,14 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2 px-1.5">
-                <span className="grid size-8 place-items-center rounded-full border border-gold/25 bg-gold/10 font-display text-[11px] text-gold">
-                  {session.user.name.slice(0, 1).toUpperCase()}
-                </span>
+                <UserAvatar
+                  name={session.user.name}
+                  userId={session.user.id}
+                  avatarPreset={session.user.avatarPreset}
+                  avatarUrl={session.user.avatarUrl}
+                  size="sm"
+                  className="border-gold/25"
+                />
                 <ChevronDown className="hidden size-3 text-muted lg:block" />
               </Button>
             </DropdownMenuTrigger>

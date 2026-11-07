@@ -18,8 +18,12 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const userId = await requireUserId();
-    const body = (await readJson(request)) as { name?: unknown };
-    const session = await getContainer().users.rename(userId, String(body.name ?? ""));
+    const body = (await readJson(request)) as {
+      name?: unknown;
+      avatarPreset?: unknown;
+      avatarImage?: unknown;
+    };
+    const session = await getContainer().users.updateProfile(userId, body);
     return NextResponse.json(session);
   } catch (error) {
     return errorResponse(error);

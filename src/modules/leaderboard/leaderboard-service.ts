@@ -17,6 +17,8 @@ export class LeaderboardService {
       .select({
         userId: users.id,
         name: users.name,
+        avatarPreset: users.avatarPreset,
+        hasAvatarImage: sql<boolean>`${users.avatarImage} is not null`,
         totalBets: playerStats.totalBets,
         wageredCents: playerStats.wageredCents,
         payoutCents: playerStats.payoutCents,
@@ -64,6 +66,8 @@ export class LeaderboardService {
         rank: index + 1,
         userId: row.userId,
         name: row.name,
+        avatarPreset: row.avatarPreset,
+        avatarUrl: row.hasAvatarImage ? `/api/avatars/${row.userId}` : null,
         totalBets: row.totalBets,
         wageredCents: row.wageredCents,
         payoutCents: row.payoutCents,

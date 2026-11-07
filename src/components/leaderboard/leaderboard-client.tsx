@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Crown, Trophy } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { useSession } from "@/components/session-provider";
+import { UserAvatar } from "@/components/user-avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { avatarTone, cn, initials } from "@/lib/client-utils";
+import { cn } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
 import type { LeaderboardResponse, LeaderboardRow } from "@/types/api";
 
@@ -26,18 +27,14 @@ function metricValue(row: LeaderboardRow, metric: Metric) {
 
 function Avatar({ row, size = "md" }: { row: LeaderboardRow; size?: "sm" | "md" | "lg" }) {
   return (
-    <span
-      className={cn(
-        "grid shrink-0 place-items-center rounded-full border border-white/5 bg-gradient-to-br font-semibold text-white/90",
-        avatarTone(row.userId),
-        size === "sm" && "size-7 text-[9px]",
-        size === "md" && "size-9 text-[10px]",
-        size === "lg" && "size-12 text-sm",
-        row.isCurrentUser && "ring-1 ring-gold/60 ring-offset-2 ring-offset-bg",
-      )}
-    >
-      {initials(row.name)}
-    </span>
+    <UserAvatar
+      name={row.name}
+      userId={row.userId}
+      avatarPreset={row.avatarPreset}
+      avatarUrl={row.avatarUrl}
+      size={size}
+      className={cn(row.isCurrentUser && "ring-1 ring-gold/60 ring-offset-2 ring-offset-bg")}
+    />
   );
 }
 

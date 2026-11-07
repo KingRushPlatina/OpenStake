@@ -6,13 +6,14 @@ import { ArrowRight, ArrowUpRight, Check, ShieldCheck, Sparkles, Trophy } from "
 import { apiFetch } from "@/lib/api-client";
 import { gameCatalog } from "@/modules/games/catalog";
 import { useSession } from "@/components/session-provider";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GameTile } from "@/components/casino/game-tile";
 import { LiveBets } from "@/components/casino/live-bets";
 import { TopUpNotice } from "@/components/casino/top-up-notice";
 import { TablePreview } from "@/components/casino/table-preview";
-import { avatarTone, cn, initials } from "@/lib/client-utils";
+import { cn } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
 import type { LeaderboardResponse } from "@/types/api";
 
@@ -176,9 +177,13 @@ export function LobbyClient() {
                   <span className={cn("w-5 text-[11px] font-semibold tabular-nums", row.rank === 1 ? "text-gold" : "text-muted/60")}>
                     {String(row.rank).padStart(2, "0")}
                   </span>
-                  <span className={cn("grid size-7 place-items-center rounded-full border border-white/5 bg-gradient-to-br text-[8px] font-bold", avatarTone(row.userId))}>
-                    {initials(row.name)}
-                  </span>
+                  <UserAvatar
+                    name={row.name}
+                    userId={row.userId}
+                    avatarPreset={row.avatarPreset}
+                    avatarUrl={row.avatarUrl}
+                    size="sm"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] font-medium text-ink">{row.name}</p>
                     <p className="text-[9px] text-muted/45">{row.totalBets} rounds</p>
