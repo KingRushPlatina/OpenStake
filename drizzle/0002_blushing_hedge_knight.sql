@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "crash_bets_one_per_round" ON "crash_bets" USING btree ("user_id","round_id") WHERE "crash_bets"."status" = 'active';

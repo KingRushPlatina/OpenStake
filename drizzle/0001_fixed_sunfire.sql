@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "bets_one_active_per_game" ON "bets" USING btree ("user_id","game_id") WHERE "bets"."status" = 'active';--> statement-breakpoint
+CREATE UNIQUE INDEX "seed_pairs_one_active" ON "seed_pairs" USING btree ("user_id") WHERE "seed_pairs"."active" = true;
