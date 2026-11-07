@@ -10,6 +10,7 @@ import { cn } from "@/lib/client-utils";
 import { formatCents } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { RollingDie } from "./rolling-die";
 
 type FaucetRollResult = {
   won: boolean;
@@ -27,78 +28,13 @@ type TopUpContextValue = {
 
 const TopUpContext = createContext<TopUpContextValue | null>(null);
 
-const PIPS: Record<number, [number, number][]> = {
-  1: [[1, 1]],
-  2: [
-    [0, 0],
-    [2, 2],
-  ],
-  3: [
-    [0, 0],
-    [1, 1],
-    [2, 2],
-  ],
-  4: [
-    [0, 0],
-    [2, 0],
-    [0, 2],
-    [2, 2],
-  ],
-  5: [
-    [0, 0],
-    [2, 0],
-    [1, 1],
-    [0, 2],
-    [2, 2],
-  ],
-  6: [
-    [0, 0],
-    [2, 0],
-    [0, 1],
-    [2, 1],
-    [0, 2],
-    [2, 2],
-  ],
-};
-
-function DieFace({ value, rolling }: { value: number | null; rolling: boolean }) {
-  return (
-    <div
-      className={cn(
-        "relative grid size-[88px] place-items-center rounded-[20px] border border-gold/35 bg-gradient-to-br from-[#faf5e8] to-[#c9b58b] shadow-[0_18px_40px_rgba(0,0,0,0.5)]",
-        rolling && "animate-[dice-tumble_620ms_ease-in-out_infinite]",
-      )}
-    >
-      {value === null ? (
-        <span className="font-display text-4xl text-[#6d5a38]/70">?</span>
-      ) : (
-        <div className="grid size-16 grid-cols-3 grid-rows-3 gap-1.5 p-1.5">
-          {Array.from({ length: 9 }).map((_, index) => {
-            const row = Math.floor(index / 3);
-            const column = index % 3;
-            const filled = PIPS[value]?.some(([r, c]) => r === row && c === column) ?? false;
-            return (
-              <span
-                key={index}
-                className={cn(
-                  "rounded-full",
-                  filled ? "bg-[#1a150e] shadow-[inset_0_1px_1px_rgba(255,255,255,0.28)]" : "bg-transparent",
-                )}
-              />
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function TopUpProvider({ children }: { children: React.ReactNode }) {
   const { session, setBalance, updateSession } = useSession();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [guess, setGuess] = useState<number | null>(null);
   const [lastRoll, setLastRoll] = useState<number | null>(null);
+  const [rollId, setRollId] = useState(0);
   const [awardedCents, setAwardedCents] = useState(0);
   const [outcome, setOutcome] = useState<"idle" | "won" | "lost">("idle");
 
@@ -109,17 +45,16 @@ export function TopUpProvider({ children }: { children: React.ReactNode }) {
 
   const mutation = useMutation({
     mutationFn: async (pick: number) => {
-      const [result] = await Promise.all([
-        apiFetch<FaucetRollResult>("/api/faucet", {
-          method: "POST",
-          body: JSON.stringify({ guess: pick }),
-        }),
-        new Promise((resolve) => setTimeout(resolve, 900)),
-      ]);
+      const result = await apiFetch<FaucetRollResult>("/api/faucet", {
+        method: "POST",
+        body: JSON.stringify({ guess: pick }),
+      });
+      setLastRoll(result.roll);
+      setRollId((id) => id + 1);
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       return result;
     },
     onSuccess: (result) => {
-      setLastRoll(result.roll);
       if (result.won) {
         setOutcome("won");
         setAwardedCents(result.amountCents);
@@ -162,6 +97,7 @@ export function TopUpProvider({ children }: { children: React.ReactNode }) {
     }
     setGuess(null);
     setLastRoll(null);
+    setRollId(0);
     setAwardedCents(0);
     setOutcome("idle");
     setOpen(true);
@@ -206,7 +142,7 @@ export function TopUpProvider({ children }: { children: React.ReactNode }) {
                 {formatCents(targetCents)} is credited instantly. If not, nothing happens and you can try again.
               </DialogDescription>
             </div>
-            <DieFace value={mutation.isPending ? null : (lastRoll ?? guess)} rolling={mutation.isPending} />
+            <RollingDie value={lastRoll ?? guess} rolling={mutation.isPending} rollId={rollId} />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-2">
