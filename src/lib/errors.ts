@@ -5,7 +5,6 @@ export type ErrorCode =
   | "BET_LIMIT"
   | "GAME_NOT_FOUND"
   | "GAME_STATE"
-  | "FAUCET_COOLDOWN"
   | "FAUCET_BALANCE"
   | "RATE_LIMITED"
   | "CONFLICT"

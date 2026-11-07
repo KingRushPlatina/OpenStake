@@ -22,7 +22,7 @@ Instant games settle in a single request. Table and progression games use an exp
 ## Platform
 
 - Automatic temporary guest seats with no signup or password
-- $100 starting balance and a $100 faucet refill every 30 minutes while below target
+- $100 starting balance and an instant top-up to $100 whenever the balance drops below target
 - Ledger wallet with idempotent bets, transactional row locks and refunds
 - Provably fair seed pairs with SHA-256 commitments and HMAC-SHA256 outcomes
 - Per-round verification data, recent bets and previous seed pairs

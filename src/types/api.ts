@@ -18,7 +18,6 @@ export type SessionPayload = {
   faucet: {
     available: boolean;
     amountCents: number;
-    nextClaimAt: string;
     targetCents: number;
   };
   seed: {

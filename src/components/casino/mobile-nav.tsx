@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Spade, Trophy, Wallet } from "lucide-react";
+import { LayoutGrid, Trophy, Wallet } from "lucide-react";
 import { cn } from "@/lib/client-utils";
 
 const items = [
-  { href: "/", label: "Originals", icon: LayoutGrid },
-  { href: "/casino/blackjack", label: "Blackjack", icon: Spade },
+  { href: "/", label: "Games", icon: LayoutGrid },
   { href: "/leaderboard", label: "Ranks", icon: Trophy },
   { href: "/wallet", label: "Wallet", icon: Wallet },
 ];
@@ -16,12 +15,10 @@ export function MobileNav() {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line/80 bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
-      <div className="grid h-16 grid-cols-4">
+      <div className="grid h-16 grid-cols-3">
         {items.map((item) => {
           const active =
-            item.href === "/"
-              ? pathname === "/" || (pathname.startsWith("/casino") && pathname !== "/casino/blackjack")
-              : pathname === item.href;
+            item.href === "/" ? pathname === "/" || pathname.startsWith("/casino") : pathname === item.href;
           const Icon = item.icon;
           return (
             <Link

@@ -11,18 +11,25 @@ export function useFaucetClaim() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      apiFetch<{ amountCents: number; balanceCents: number; nextClaimAt: string }>("/api/faucet", {
+      apiFetch<{ amountCents: number; balanceCents: number; targetCents: number }>("/api/faucet", {
         method: "POST",
       }),
     onSuccess: (result) => {
       setBalance(result.balanceCents);
       updateSession((current) => ({
         ...current,
-        faucet: { ...current.faucet, available: false, amountCents: 0, nextClaimAt: result.nextClaimAt },
+        faucet: {
+          ...current.faucet,
+          available: false,
+          amountCents: 0,
+          targetCents: result.targetCents,
+        },
       }));
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Faucet claimed", { description: `${formatCents(result.amountCents)} added to your balance.` });
+      toast.success("Balance topped up", {
+        description: `${formatCents(result.amountCents)} added. You are back at ${formatCents(result.targetCents)}.`,
+      });
     },
-    onError: (error) => toast.error("Faucet unavailable", { description: error.message }),
+    onError: (error) => toast.error("Top-up unavailable", { description: error.message }),
   });
 }

@@ -1,11 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownLeft, ArrowUpRight, Coins, Gift, Sparkles } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Coins, Gift, Plus, Sparkles } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { useSession } from "@/components/session-provider";
 import { useFaucetClaim } from "@/components/casino/use-faucet-claim";
-import { useClock } from "@/components/casino/use-clock";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/client-utils";
 import { formatCents, formatSignedCents } from "@/lib/money";
@@ -13,7 +12,7 @@ import type { TransactionRow } from "@/types/api";
 
 const typeLabels: Record<string, string> = {
   welcome: "Welcome credit",
-  faucet: "Faucet refill",
+  faucet: "Instant top-up",
   bet: "Wager placed",
   payout: "Wager return",
   refund: "Refund",
@@ -29,15 +28,12 @@ function TransactionIcon({ type }: { type: string }) {
 export function WalletClient() {
   const { session, refresh } = useSession();
   const claim = useFaucetClaim();
-  const now = useClock();
   const query = useQuery({
     queryKey: ["transactions"],
     queryFn: () => apiFetch<{ transactions: TransactionRow[] }>("/api/transactions?limit=60"),
   });
   const transactions = query.data?.transactions ?? [];
-  const remaining = Math.max(0, new Date(session.faucet.nextClaimAt).getTime() - now);
   const belowTarget = session.wallet.balanceCents < session.faucet.targetCents;
-  const countdown = now === 0 ? "--:--" : `${Math.floor(remaining / 60_000)}:${String(Math.floor((remaining % 60_000) / 1000)).padStart(2, "0")}`;
 
   return (
     <div className="space-y-8">
@@ -70,24 +66,22 @@ export function WalletClient() {
             <Gift className="size-4 text-gold" />
           </span>
           <div>
-            <p className="text-[13px] font-medium text-ink">The faucet</p>
+            <p className="text-[13px] font-medium text-ink">Instant top-up</p>
             <p className="mt-1 max-w-md text-[10px] leading-5 text-muted/65">
-              When your balance drops below $100, the faucet restores it to $100 every 30 minutes.
+              Your minimum balance is $100. Tap add whenever you are below it and the difference is credited
+              instantly.
             </p>
           </div>
         </div>
         <Button
           type="button"
-          variant={session.faucet.available ? "primary" : "secondary"}
+          variant={belowTarget ? "primary" : "secondary"}
           size="sm"
-          disabled={!session.faucet.available || claim.isPending}
+          disabled={!belowTarget || claim.isPending}
           onClick={() => claim.mutate()}
         >
-          {session.faucet.available
-            ? `Claim ${formatCents(session.faucet.amountCents)}`
-            : belowTarget
-              ? `Ready in ${countdown}`
-              : "Balance above $100"}
+          <Plus className="size-3.5" />
+          {belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : "Balance at $100"}
         </Button>
       </section>
 

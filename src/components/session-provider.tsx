@@ -26,9 +26,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const setBalance = useCallback(
     (balanceCents: number) => {
-      queryClient.setQueryData<SessionPayload>(["session"], (current) =>
-        current ? { ...current, wallet: { balanceCents } } : current,
-      );
+      queryClient.setQueryData<SessionPayload>(["session"], (current) => {
+        if (!current) return current;
+        const belowTarget = balanceCents < current.faucet.targetCents;
+        return {
+          ...current,
+          wallet: { balanceCents },
+          faucet: {
+            ...current.faucet,
+            available: belowTarget,
+            amountCents: belowTarget ? current.faucet.targetCents - balanceCents : 0,
+          },
+        };
+      });
     },
     [queryClient],
   );

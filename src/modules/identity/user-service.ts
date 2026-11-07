@@ -2,10 +2,10 @@ import { eq, sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { getDatabase } from "@/platform/db/client";
 import { env } from "@/platform/env";
-import { faucetClaims, ledgerEntries, playerStats, users, wallets } from "@/platform/db/schema";
+import { ledgerEntries, playerStats, users, wallets } from "@/platform/db/schema";
 import { AppError } from "@/lib/errors";
 import type { Clock, IdGenerator } from "@/modules/wallet/constants";
-import { FAUCET_COOLDOWN_MS, FAUCET_TARGET_CENTS, STARTING_BALANCE_CENTS } from "@/modules/wallet/constants";
+import { FAUCET_TARGET_CENTS, STARTING_BALANCE_CENTS } from "@/modules/wallet/constants";
 import type { SeedService } from "@/modules/fairness/seed-service";
 
 const ADJECTIVES = [
@@ -96,12 +96,6 @@ export class UserService {
           await database.insert(users).values({ id: userId, name, lastSeenAt: this.clock.now() });
           await database.insert(wallets).values({ userId, balanceCents: STARTING_BALANCE_CENTS });
           await database.insert(playerStats).values({ userId });
-          await database.insert(faucetClaims).values({
-            id: this.ids.create("fau"),
-            userId,
-            amountCents: 0,
-            claimedAt: this.clock.now(),
-          });
           await database.insert(ledgerEntries).values({
             id: this.ids.create("led"),
             userId,
@@ -150,14 +144,6 @@ export class UserService {
     if (!row) throw new AppError("UNAUTHORIZED", "Guest account not found", 401);
     await database.update(users).set({ lastSeenAt: this.clock.now() }).where(eq(users.id, userId));
     const activeSeed = await this.seeds.getActive(userId);
-    const [claim] = await database
-      .select()
-      .from(faucetClaims)
-      .where(eq(faucetClaims.userId, userId))
-      .orderBy(sql`${faucetClaims.claimedAt} desc`)
-      .limit(1);
-    const now = this.clock.now().getTime();
-    const nextClaimAt = claim ? new Date(claim.claimedAt.getTime() + FAUCET_COOLDOWN_MS) : new Date(now);
     const belowTarget = row.balanceCents < FAUCET_TARGET_CENTS;
     return {
       user: { id: row.id, name: row.name, createdAt: row.createdAt },
@@ -171,9 +157,8 @@ export class UserService {
         biggestMultiplier: row.biggestMultiplier,
       },
       faucet: {
-        available: belowTarget && now >= nextClaimAt.getTime(),
+        available: belowTarget,
         amountCents: Math.max(0, FAUCET_TARGET_CENTS - row.balanceCents),
-        nextClaimAt: nextClaimAt.toISOString(),
         targetCents: FAUCET_TARGET_CENTS,
       },
       seed: activeSeed
