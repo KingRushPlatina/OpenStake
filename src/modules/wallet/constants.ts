@@ -1,5 +1,5 @@
-export const STARTING_BALANCE_CENTS = 10_000;
-export const FAUCET_TARGET_CENTS = 10_000;
+export const STARTING_BALANCE_CENTS = 1_000_000;
+export const FAUCET_TARGET_CENTS = 1_000_000;
 
 export type LedgerType = "welcome" | "faucet" | "bet" | "payout" | "refund";
 

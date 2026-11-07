@@ -4,14 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowLeft, Spade } from "lucide-react";
+import { toast } from "sonner";
 import type { GameMetadata, PublicBet } from "@/modules/games/types";
-import type { BlackjackAction, BlackjackState } from "@/types/blackjack";
+import {
+  BLACKJACK_CHIPS_CENTS,
+  BLACKJACK_MAX_HAND_BET_CENTS,
+  BLACKJACK_MAX_SPOTS,
+  type BlackjackAction,
+  type BlackjackState,
+} from "@/types/blackjack";
 import { apiFetch } from "@/lib/api-client";
 import { newRequestKey } from "@/lib/client-utils";
-import { formatCents, parseAmountToCents } from "@/lib/money";
+import { formatCents } from "@/lib/money";
 import { useSession } from "@/components/session-provider";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { LiveBets } from "@/components/casino/live-bets";
 import { TopUpNotice } from "@/components/casino/top-up-notice";
 import { useFaucetClaim } from "@/components/casino/use-faucet-claim";
@@ -21,23 +27,35 @@ import { BlackjackTable } from "./blackjack-table";
 import { RecentHands } from "./recent-hands";
 import { FairnessCard, RulesCard } from "./side-cards";
 
-const chipOptions = [1, 5, 25, 100];
+function emptySpots() {
+  return Array.from({ length: BLACKJACK_MAX_SPOTS }, () => [] as number[]);
+}
+
+function spotsTotal(spots: number[][]) {
+  return spots.reduce((total, chips) => total + chips.reduce((sum, chip) => sum + chip, 0), 0);
+}
+
+function activeSpots(spots: number[][]) {
+  return spots.map((chips) => chips.reduce((sum, chip) => sum + chip, 0)).filter((amount) => amount > 0);
+}
 
 export function BlackjackGame({ game }: { game: GameMetadata }) {
   const { session } = useSession();
   const tableRef = useRef<HTMLDivElement>(null);
-  const [amount, setAmount] = useState("1.00");
+  const [spots, setSpots] = useState<number[][]>(emptySpots);
+  const [lastSpots, setLastSpots] = useState<number[][] | null>(null);
+  const [selectedChip, setSelectedChip] = useState<number>(BLACKJACK_CHIPS_CENTS[2]);
   const { activeBet, setActiveBet } = useProgressionBet(game.id);
   const result = useGameResult("Blackjack");
   const claim = useFaucetClaim();
   const state = activeBet?.result as BlackjackState | undefined;
   const isActive = activeBet?.status === "active";
   const settled = activeBet?.status === "settled";
-  const amountCents = parseAmountToCents(amount);
-  const valid = amountCents >= game.minBetCents && amountCents <= game.maxBetCents;
   const balance = session.wallet.balanceCents;
   const activeHand = state?.hands[state.activeHand];
-  const totalStake = state?.totalStake ?? activeBet?.amountCents ?? amountCents;
+  const totalOnTable = spotsTotal(spots);
+  const boxCount = activeSpots(spots).length;
+  const totalStake = state?.totalStake ?? activeBet?.amountCents ?? totalOnTable;
   const net = activeBet ? activeBet.payoutCents - activeBet.amountCents : 0;
 
   const availableActions = (state?.availableActions ?? []).filter((action) => {
@@ -50,9 +68,15 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
     mutationFn: () =>
       apiFetch<PublicBet>("/api/games/blackjack/start", {
         method: "POST",
-        body: JSON.stringify({ amountCents, input: {}, idempotencyKey: newRequestKey() }),
+        body: JSON.stringify({
+          amountCents: totalOnTable,
+          input: { spots: activeSpots(spots) },
+          idempotencyKey: newRequestKey(),
+        }),
       }),
     onSuccess: (bet) => {
+      setLastSpots(spots.map((chips) => [...chips]));
+      setSpots(emptySpots());
       setActiveBet(bet);
       result.onResult(bet);
       if (window.matchMedia("(max-width: 1279px)").matches) {
@@ -90,9 +114,53 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
     return () => window.removeEventListener("keydown", handler);
   }, [act, availableActions, busy, isActive, state?.phase]);
 
-  const setCents = (cents: number) => {
-    setAmount((Math.max(0, Math.min(game.maxBetCents, cents)) / 100).toFixed(2));
+  const placeChip = (index: number) => {
+    if (isActive || settled || busy) return;
+    if (selectedChip > balance) {
+      toast.error("Not enough credits", { description: `Top up to place a ${formatCents(selectedChip)} chip.` });
+      return;
+    }
+    const current = spots[index]?.reduce((sum, chip) => sum + chip, 0) ?? 0;
+    if (current + selectedChip > BLACKJACK_MAX_HAND_BET_CENTS) {
+      toast.error("Box limit", { description: `Each box takes up to ${formatCents(BLACKJACK_MAX_HAND_BET_CENTS)}.` });
+      return;
+    }
+    setSpots((previous) => previous.map((chips, chipIndex) => (chipIndex === index ? [...chips, selectedChip] : chips)));
   };
+
+  const clearSpot = (index: number) => {
+    setSpots((previous) => previous.map((chips, chipIndex) => (chipIndex === index ? [] : chips)));
+  };
+
+  const undo = () => {
+    setSpots((previous) => {
+      const next = previous.map((chips) => [...chips]);
+      for (let index = next.length - 1; index >= 0; index -= 1) {
+        if (next[index].length > 0) {
+          next[index].pop();
+          break;
+        }
+      }
+      return next;
+    });
+  };
+
+  const rebet = () => {
+    const source =
+      lastSpots && lastSpots.length > 0
+        ? lastSpots
+        : (state?.hands ?? []).map((hand) => [hand.betCents]);
+    if (source.length === 0) return;
+    const next = emptySpots();
+    source.slice(0, BLACKJACK_MAX_SPOTS).forEach((chips, index) => {
+      next[index] = [...chips];
+    });
+    setSpots(next);
+    setActiveBet(null);
+  };
+
+  const displayedStake = isActive || settled ? totalStake : totalOnTable;
+  const displayedBoxes = isActive || settled ? state?.hands.length ?? boxCount : boxCount;
 
   return (
     <div className="space-y-6">
@@ -110,18 +178,21 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
           <h1 className="mt-3 text-4xl text-ink sm:text-5xl">
             Blackjack <span className="italic text-gold/80">No. 01</span>
           </h1>
+          <p className="mt-2 max-w-md text-[11px] leading-5 text-muted/55">
+            Cash-style chips from $1 to $1,000. Stack up to four boxes, then play each hand out against the dealer.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="gold">3:2 blackjack</Badge>
-          <Badge>Dealer stands on soft 17</Badge>
-          <Badge>99.5% RTP</Badge>
+          <Badge>6 decks · S17</Badge>
+          <Badge>4 boxes</Badge>
         </div>
       </div>
 
       <TopUpNotice minBetCents={game.minBetCents} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <aside className="order-first space-y-4 xl:order-2 xl:sticky xl:top-[96px] xl:self-start">
+        <aside className="order-2 space-y-4 xl:order-2 xl:sticky xl:top-[96px] xl:self-start">
           <section className="surface p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -137,102 +208,53 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
               <p className="mt-1.5 text-[10px] text-muted/50">Virtual credits · no cash value</p>
             </div>
 
-            <div className="mt-5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="stake" className="text-[10px] font-medium text-muted">Stake</label>
-                <span className="text-[9px] text-muted/45">${game.minBetCents / 100} — ${game.maxBetCents / 100}</span>
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl border border-line/60 bg-surface-2/60 px-3 py-2.5">
+                <p className="text-[8px] uppercase tracking-[0.16em] text-muted/45">On the table</p>
+                <p className="mt-1 text-[13px] font-semibold text-ink tabular-nums">{formatCents(displayedStake)}</p>
               </div>
-              <div className="mt-2 flex h-12 items-center rounded-xl border border-line bg-[#0a0e0c] px-3 transition focus-within:border-gold/40">
-                <span className="text-sm text-muted">$</span>
-                <input
-                  id="stake"
-                  inputMode="decimal"
-                  value={amount}
-                  disabled={isActive || busy}
-                  onChange={(event) => {
-                    const next = event.target.value.replace(/[^0-9.]/g, "");
-                    if ((next.match(/\./g) ?? []).length <= 1) setAmount(next);
-                  }}
-                  onBlur={() => {
-                    const cents = parseAmountToCents(amount);
-                    if (cents < game.minBetCents) setCents(game.minBetCents);
-                    else if (cents > game.maxBetCents) setCents(game.maxBetCents);
-                  }}
-                  className="h-full min-w-0 flex-1 bg-transparent px-2 text-[15px] font-semibold text-ink outline-none disabled:opacity-55"
-                />
-                <button type="button" disabled={isActive || busy} onClick={() => setCents(balance)} className="text-[10px] font-semibold text-gold/80 transition hover:text-gold disabled:opacity-40">
-                  Max
-                </button>
+              <div className="rounded-xl border border-line/60 bg-surface-2/60 px-3 py-2.5">
+                <p className="text-[8px] uppercase tracking-[0.16em] text-muted/45">{isActive || settled ? "Hands" : "Boxes"}</p>
+                <p className="mt-1 text-[13px] font-semibold text-ink tabular-nums">
+                  {displayedBoxes || 0}
+                  {isActive || settled ? "" : ` / ${BLACKJACK_MAX_SPOTS}`}
+                </p>
               </div>
-              {amountCents > balance ? (
-                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-red/25 bg-red/[0.06] px-2.5 py-2">
-                  <p className="text-[9px] leading-4 text-red/85">Your balance is lower than this stake.</p>
-                  <button
-                    type="button"
-                    onClick={() => claim.mutate()}
-                    disabled={claim.isPending}
-                    className="shrink-0 rounded-md bg-gold px-2 py-1 text-[9px] font-semibold text-[#14100a] transition hover:bg-gold-strong disabled:opacity-50"
-                  >
-                    {claim.isPending ? "Reloading…" : "Reload"}
-                  </button>
-                </div>
-              ) : null}
-              <div className="mt-2 grid grid-cols-4 gap-1.5">
-                {chipOptions.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    disabled={isActive || busy}
-                    onClick={() => setCents(value * 100)}
-                    className="relative grid h-10 place-items-center rounded-full border border-line bg-surface-2 text-[10px] font-semibold text-muted transition hover:border-gold/30 hover:text-ink disabled:opacity-40"
-                  >
-                    <span className="absolute inset-[3px] rounded-full border border-dashed border-white/10" />
-                    ${value}
-                  </button>
-                ))}
+              <div className="rounded-xl border border-gold/20 bg-gold/[0.05] px-3 py-2.5">
+                <p className="text-[8px] uppercase tracking-[0.16em] text-gold/50">Max return</p>
+                <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{formatCents(Math.floor(displayedStake * 2.5))}</p>
               </div>
-              <div className="mt-2 grid grid-cols-3 gap-1.5">
-                {[
-                  { label: "½", value: Math.max(game.minBetCents, Math.floor(amountCents / 2)) },
-                  { label: "2×", value: Math.min(game.maxBetCents, amountCents * 2) },
-                  { label: "All in", value: Math.min(game.maxBetCents, balance) },
-                ].map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    disabled={isActive || busy}
-                    onClick={() => setCents(option.value)}
-                    className="h-8 rounded-lg border border-line/70 text-[9px] font-medium text-muted transition hover:border-line-strong hover:text-ink disabled:opacity-40"
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="rounded-xl border border-line/60 bg-surface-2/60 px-3 py-2.5">
+                <p className="text-[8px] uppercase tracking-[0.16em] text-muted/45">{settled ? "Last result" : "Per box"}</p>
+                <p className={cnResult(settled ? net : BLACKJACK_MAX_HAND_BET_CENTS, settled)}>{settled ? (net > 0 ? `+${formatCents(net)}` : formatCents(net)) : "$1K max"}</p>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center justify-between rounded-xl border border-line/60 bg-surface-2/60 px-3.5 py-3">
+            <div className="mt-4 rounded-xl border border-line/60 bg-[#08110d] px-3.5 py-3">
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="uppercase tracking-[0.16em] text-muted/45">Table limits</span>
+                <span className="font-medium text-ink/80">$1 — $1,000 / box</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[9px]">
+                <span className="uppercase tracking-[0.16em] text-muted/45">Blackjack pays</span>
+                <span className="font-medium text-gold/90">3:2</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[9px]">
+                <span className="uppercase tracking-[0.16em] text-muted/45">Insurance</span>
+                <span className="font-medium text-ink/80">2:1</span>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-line/60 bg-surface-2/60 px-3.5 py-3">
               <div>
-                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Stake</p>
-                <p className="mt-1 text-[13px] font-semibold text-ink tabular-nums">{formatCents(isActive ? totalStake : amountCents)}</p>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Chips on felt</p>
+                <p className="mt-1 text-[13px] font-semibold text-ink tabular-nums">{formatCents(isActive || settled ? totalStake : totalOnTable)}</p>
               </div>
               <div className="text-right">
-                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Blackjack pays</p>
-                <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{formatCents(Math.floor((isActive ? totalStake : amountCents) * 2.5))}</p>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">{settled ? "Returned" : "Bet limit"}</p>
+                <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{formatCents(settled ? activeBet?.payoutCents ?? 0 : game.maxBetCents)}</p>
               </div>
             </div>
-
-            <Button
-              type="button"
-              size="lg"
-              className="mt-4 w-full"
-              disabled={isActive || busy || !valid}
-              onClick={() => start.mutate()}
-            >
-              {start.isPending ? "Dealing…" : act.isPending ? "Settling…" : isActive ? "Hand in play" : settled ? "Deal again" : "Deal cards"}
-            </Button>
-            {!valid ? (
-              <p className="mt-2 text-[10px] text-red/80">Stake must be between {formatCents(game.minBetCents)} and {formatCents(game.maxBetCents)}.</p>
-            ) : null}
           </section>
 
           <div className="hidden space-y-4 xl:block">
@@ -241,7 +263,7 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
           </div>
         </aside>
 
-        <div className="order-2 min-w-0 space-y-5 xl:order-1">
+        <div className="order-1 min-w-0 space-y-5 xl:order-1">
           <div ref={tableRef} className="scroll-mt-24">
             <BlackjackTable
               state={state}
@@ -249,10 +271,25 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
               isActive={Boolean(isActive)}
               settled={Boolean(settled)}
               busy={busy}
-              amountCents={isActive ? totalStake : amountCents}
+              spots={spots}
+              selectedChip={selectedChip}
+              balanceCents={balance}
               net={net}
               availableActions={availableActions}
               onAction={(action) => act.mutate(action)}
+              onSelectChip={setSelectedChip}
+              onPlaceChip={placeChip}
+              onClearSpot={clearSpot}
+              onUndo={undo}
+              onClearAll={() => setSpots(emptySpots())}
+              onDeal={() => start.mutate()}
+              onRebet={rebet}
+              onNewBet={() => {
+                setSpots(emptySpots());
+                setActiveBet(null);
+              }}
+              onReload={() => claim.mutate()}
+              reloading={claim.isPending}
             />
           </div>
 
@@ -269,4 +306,13 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
       </div>
     </div>
   );
+}
+
+function cnResult(cents: number, settled: boolean) {
+  if (!settled) return "mt-1 text-[13px] font-semibold text-ink/80 tabular-nums";
+  return cents > 0
+    ? "mt-1 text-[13px] font-semibold text-green tabular-nums"
+    : cents < 0
+      ? "mt-1 text-[13px] font-semibold text-red/80 tabular-nums"
+      : "mt-1 text-[13px] font-semibold text-ink tabular-nums";
 }

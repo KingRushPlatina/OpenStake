@@ -109,8 +109,8 @@ export function Header() {
                   ? "bg-green/15 text-green hover:bg-green/25"
                   : "text-muted/30 disabled:cursor-default",
               )}
-              aria-label={belowTarget ? `Add ${formatCents(session.faucet.amountCents)} to reach $100` : "Balance is at $100"}
-              title={belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : "Balance is at $100"}
+              aria-label={belowTarget ? `Add ${formatCents(session.faucet.amountCents)} to reach ${formatCents(session.faucet.targetCents)}` : `Balance is at ${formatCents(session.faucet.targetCents)}`}
+              title={belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : `Balance is at ${formatCents(session.faucet.targetCents)}`}
             >
               {claim.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-4" />}
             </button>

@@ -166,12 +166,13 @@ export class BettingService {
     }
   }
 
-  async startProgression(userId: string, gameId: string, amountCents: number, input: unknown, idempotencyKey: string) {
+  async startProgression(userId: string, gameId: string, requestedAmountCents: number, input: unknown, idempotencyKey: string) {
     validateIdempotencyKey(idempotencyKey);
     const game = progressionGameById.get(gameId as never);
     if (!game) throw new AppError("GAME_NOT_FOUND", "Game not available", 404);
-    validateAmount(game.metadata, amountCents);
     const parsedInput = game.startSchema.parse(input);
+    const amountCents = game.resolveStake ? game.resolveStake(parsedInput, requestedAmountCents) : requestedAmountCents;
+    validateAmount(game.metadata, amountCents);
 
     const existing = await this.findByIdempotencyKey(userId, idempotencyKey);
     if (existing) return this.hydrate(existing);
@@ -194,7 +195,8 @@ export class BettingService {
         const snapshot = game.start(parsedInput, { betCents: amountCents, random: seed.random });
         const settled = snapshot.status === "settled";
         const multiplier = cappedMultiplier(game.metadata, snapshot.multiplier);
-        const payoutCents = settled ? payoutFor(amountCents, multiplier) : 0;
+        const maxPayoutCents = payoutFor(amountCents, game.metadata.maxWinMultiplier);
+        const payoutCents = settled ? Math.min(snapshot.payoutCents ?? maxPayoutCents, maxPayoutCents) : 0;
         const now = this.clock.now();
         const betId = this.ids.create("bet");
 
@@ -316,7 +318,8 @@ export class BettingService {
         });
         await this.ledger.recordAdditionalStake(tx, userId, additionalStakeCents);
       }
-      const payoutCents = settled ? payoutFor(totalStakeCents, multiplier) : 0;
+      const maxPayoutCents = payoutFor(totalStakeCents, game.metadata.maxWinMultiplier);
+      const payoutCents = settled ? Math.min(next.payoutCents ?? maxPayoutCents, maxPayoutCents) : 0;
       if (settled) {
         if (payoutCents > 0) {
           balance = await this.ledger.move(tx, {

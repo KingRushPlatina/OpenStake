@@ -68,8 +68,8 @@ export function WalletClient() {
           <div>
             <p className="text-[13px] font-medium text-ink">Instant top-up</p>
             <p className="mt-1 max-w-md text-[10px] leading-5 text-muted/65">
-              Your minimum balance is $100. Tap add whenever you are below it and the difference is credited
-              instantly.
+              Your minimum balance is {formatCents(session.faucet.targetCents)}. Tap add whenever you are below it and
+              the difference is credited instantly.
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function WalletClient() {
           onClick={() => claim.mutate()}
         >
           <Plus className="size-3.5" />
-          {belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : "Balance at $100"}
+          {belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : `Balance at ${formatCents(session.faucet.targetCents)}`}
         </Button>
       </section>
 

@@ -7,6 +7,7 @@ export type ProgressionSnapshot = {
   multiplier: number;
   status: "active" | "settled";
   settledResult?: Record<string, unknown>;
+  payoutCents?: number;
   additionalStakeCents?: number;
 };
 
@@ -19,6 +20,7 @@ export type ProgressionEngine = {
   metadata: GameMetadata;
   startSchema: z.ZodType;
   actionSchema: z.ZodType;
+  resolveStake?: (input: unknown, requestedAmountCents: number) => number;
   start: (input: unknown, context: ProgressionStartContext) => ProgressionSnapshot;
   act: (snapshot: ProgressionSnapshot, action: unknown) => ProgressionSnapshot;
 };

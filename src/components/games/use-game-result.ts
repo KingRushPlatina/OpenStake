@@ -10,7 +10,7 @@ import { ApiError } from "@/lib/api-client";
 import { formatCents, formatMultiplier } from "@/lib/money";
 
 export function useGameResult(gameName: string) {
-  const { setBalance } = useSession();
+  const { session, setBalance } = useSession();
   const faucet = useFaucetClaim();
   const queryClient = useQueryClient();
   const refill = faucet.mutate;
@@ -34,7 +34,7 @@ export function useGameResult(gameName: string) {
     (error: unknown) => {
       if (error instanceof ApiError && error.code === "INSUFFICIENT_FUNDS") {
         toast.error("Out of credits", {
-          description: "Your stake is higher than your balance. Reload to $100 and try again.",
+          description: `Your stake is higher than your balance. Reload to ${formatCents(session.faucet.targetCents)} and try again.`,
           action: { label: "Reload", onClick: () => refill() },
         });
         return;
@@ -47,7 +47,7 @@ export function useGameResult(gameName: string) {
         description: error instanceof Error ? error.message : "Please try again.",
       });
     },
-    [refill],
+    [refill, session.faucet.targetCents],
   );
 
   return { onResult, onError };

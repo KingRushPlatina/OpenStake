@@ -6,7 +6,7 @@ OpenStake is a server-authoritative, play-money originals floor with the visual 
 
 Ten original games share one wallet, one seed system and one design language:
 
-- **Blackjack** — six decks, 3:2 naturals, dealer stands on soft 17, doubles, splits and insurance
+- **Blackjack** — a live-feel table with $1–$1,000 chips, four betting boxes, six decks, 3:2 naturals, doubles, splits and insurance
 - **Dice** — choose a side and a win chance
 - **Limbo** — pick a target multiplier
 - **Plinko** — five row counts and three risk levels
@@ -23,7 +23,7 @@ Instant games settle in a single request. Table and progression games use an exp
 
 - First-visit seat setup: display name, avatar preset or uploaded photo, no password or email
 - Automatic temporary guest seats that live in the browser session
-- $100 starting balance and an instant top-up to $100 whenever the balance drops below target
+- $10,000 starting balance and an instant top-up to $10,000 whenever the balance drops below target
 - Ledger wallet with idempotent bets, transactional row locks and refunds
 - Provably fair seed pairs with SHA-256 commitments and HMAC-SHA256 outcomes
 - Per-round verification data, recent bets and previous seed pairs

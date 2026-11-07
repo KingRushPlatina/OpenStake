@@ -47,12 +47,16 @@ function deckWith(firstCards: string[]) {
   return [...firstCards, ...remaining];
 }
 
-function startWith(firstCards: string[], betCents = 100) {
-  return blackjackGame.start({}, { betCents, random: new ScriptedRandom(deckWith(firstCards)) });
+function startWith(firstCards: string[], betCents = 100, input: unknown = {}) {
+  return blackjackGame.start(input, { betCents, random: new ScriptedRandom(deckWith(firstCards)) });
 }
 
 function settledResult(snapshot: ProgressionSnapshot) {
   return snapshot.settledResult as unknown as SettledState;
+}
+
+function liveState(snapshot: ProgressionSnapshot) {
+  return snapshot.publicState as unknown as BlackjackState;
 }
 
 function play(snapshot: ProgressionSnapshot, action: unknown) {
@@ -126,7 +130,7 @@ describe("blackjack", () => {
 
   it("pays insurance when the dealer has blackjack", () => {
     const start = startWith(["KH", "QS", "AD", "KC"]);
-    expect(start.publicState.phase).toBe("insurance");
+    expect(liveState(start).phase).toBe("insurance");
     const insured = play(start, { type: "take-insurance" });
     expect(insured.status).toBe("settled");
     expect(insured.additionalStakeCents).toBe(50);
@@ -154,6 +158,57 @@ describe("blackjack", () => {
     const start = startWith(["10S", "9H", "9D", "7C", "6S"]);
     const settled = play(start, { type: "stand" });
     expect(() => play(settled, { type: "hit" })).toThrow();
+  });
+
+  it("stakes the sum of the chips across four betting boxes", () => {
+    expect(blackjackGame.resolveStake?.({ spots: [100, 500, 2_500, 100_000] }, 0)).toBe(103_100);
+    const start = startWith(["10S", "9H", "8D", "8C", "9S", "7H", "6S"], 600, { spots: [100, 500] });
+    const state = liveState(start);
+    expect(state.hands).toHaveLength(2);
+    expect(state.hands[0]?.betCents).toBe(100);
+    expect(state.hands[1]?.betCents).toBe(500);
+    expect(state.totalStake).toBe(600);
+  });
+
+  it("plays and settles multiple boxes in one round", () => {
+    const start = startWith(["10S", "9H", "8D", "8C", "9S", "7H", "6S"], 600, { spots: [100, 500] });
+    const second = play(start, { type: "stand" });
+    expect(liveState(second).activeHand).toBe(1);
+    const settled = play(second, { type: "stand" });
+    expect(settled.status).toBe("settled");
+    expect(settled.multiplier).toBe(2);
+    expect(settled.payoutCents).toBe(1_200);
+    expect(settledResult(settled).totalPayout).toBe(1_200);
+    expect(settledResult(settled).payouts).toHaveLength(2);
+  });
+
+  it("stands a natural in one box and keeps playing the others", () => {
+    const start = startWith(["AS", "KH", "10D", "9C", "9S", "7H", "6S"], 600, { spots: [100, 500] });
+    expect(start.status).toBe("active");
+    const state = liveState(start);
+    expect(state.hands[0]?.status).toBe("stood");
+    expect(state.hands[1]?.status).toBe("active");
+    expect(state.activeHand).toBe(1);
+    const settled = play(start, { type: "stand" });
+    expect(settled.status).toBe("settled");
+    expect(settled.multiplier).toBeCloseTo(1_250 / 600);
+    expect(settledResult(settled).payouts[0]?.outcome).toBe("blackjack");
+  });
+
+  it("offers insurance on the whole table and pays it on a dealer blackjack", () => {
+    const start = startWith(["KH", "QS", "9D", "8C", "AD", "KC"], 300, { spots: [100, 200] });
+    expect(liveState(start).phase).toBe("insurance");
+    const insured = play(start, { type: "take-insurance" });
+    expect(insured.status).toBe("settled");
+    expect(insured.additionalStakeCents).toBe(150);
+    expect(insured.multiplier).toBe(1);
+    expect(settledResult(insured).insurancePayout).toBe(450);
+  });
+
+  it("rejects more than four betting boxes", () => {
+    expect(() =>
+      startWith(["10S", "9H", "9D", "7C"], 500, { spots: [100, 100, 100, 100, 100] }),
+    ).toThrow();
   });
 });
 

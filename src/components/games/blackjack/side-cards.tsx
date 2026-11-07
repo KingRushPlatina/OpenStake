@@ -7,7 +7,7 @@ const rules: [string, string][] = [
   ["Blackjack", "3:2"],
   ["Dealer", "Soft 17"],
   ["Double", "Any two"],
-  ["Split", "Up to 4"],
+  ["Split", "Up to 8 hands"],
   ["Insurance", "2:1"],
   ["Shoe", "6 decks"],
 ];

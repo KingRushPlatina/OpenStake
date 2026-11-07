@@ -7,8 +7,19 @@ import {
   rankOf,
   shuffleDeck,
 } from "../cards";
+import {
+  BLACKJACK_MAX_HAND_BET_CENTS,
+  BLACKJACK_MAX_HANDS,
+  BLACKJACK_MAX_SPOTS,
+  BLACKJACK_MIN_HAND_BET_CENTS,
+  type BlackjackHandOutcome,
+} from "@/types/blackjack";
 
-export const blackjackStartSchema = z.object({}).strict();
+export const blackjackStartSchema = z
+  .object({
+    spots: z.array(z.number().int().min(BLACKJACK_MIN_HAND_BET_CENTS).max(BLACKJACK_MAX_HAND_BET_CENTS)).min(1).max(BLACKJACK_MAX_SPOTS).optional(),
+  })
+  .strict();
 
 export const blackjackActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hit") }),
@@ -66,12 +77,24 @@ type BlackjackPublic = {
   message: string;
 };
 
+type BlackjackSettled = BlackjackPublic & {
+  dealerBlackjack: boolean;
+  insurancePayout: number;
+  payouts: BlackjackHandOutcome[];
+  totalPayout: number;
+};
+
 function drawCard(secret: BlackjackSecret) {
   return secret.shoe[secret.cursor++];
 }
 
 function isNatural(hand: BlackjackHand) {
   return !hand.fromSplit && hand.cards.length === 2 && blackjackValue(hand.cards).total === 21;
+}
+
+function resolveSpots(input: unknown, fallbackCents: number) {
+  const parsed = blackjackStartSchema.parse(input);
+  return parsed.spots && parsed.spots.length > 0 ? parsed.spots : [fallbackCents];
 }
 
 function publicHand(hand: BlackjackHand, activeHand: number, index: number): PublicHand {
@@ -95,7 +118,11 @@ function activeActions(secret: BlackjackSecret): string[] {
   if (!hand) return [];
   const actions = ["hit", "stand"];
   if (hand.cards.length === 2) actions.push("double");
-  if (hand.cards.length === 2 && hand.cards.every((card) => rankOf(card) === rankOf(hand.cards[0])) && secret.hands.length < 4) {
+  if (
+    hand.cards.length === 2 &&
+    hand.cards.every((card) => rankOf(card) === rankOf(hand.cards[0])) &&
+    secret.hands.length < BLACKJACK_MAX_HANDS
+  ) {
     actions.push("split");
   }
   return actions;
@@ -105,7 +132,7 @@ function publicState(secret: BlackjackSecret, settled = false): BlackjackPublic 
   const dealerValue = blackjackValue(secret.dealer);
   return {
     phase: secret.phase,
-    dealerCards: settled ? [...secret.dealer] : [secret.dealer[0]],
+    dealerCards: settled ? [...secret.dealer] : secret.dealer.slice(0, 1),
     dealerHidden: !settled,
     dealerTotal: settled ? dealerValue.total : null,
     hands: secret.hands.map((hand, index) => publicHand(hand, secret.activeHand, index)),
@@ -124,6 +151,12 @@ function publicState(secret: BlackjackSecret, settled = false): BlackjackPublic 
   };
 }
 
+function standNaturals(secret: BlackjackSecret) {
+  for (const hand of secret.hands) {
+    if (isNatural(hand)) hand.status = "stood";
+  }
+}
+
 function settleRound(secret: BlackjackSecret, snapshot: ProgressionSnapshot): ProgressionSnapshot {
   const dealerValueBefore = blackjackValue(secret.dealer);
   const dealerNatural = secret.dealer.length === 2 && dealerValueBefore.total === 21;
@@ -135,7 +168,7 @@ function settleRound(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Pr
   }
   const dealerValue = blackjackValue(secret.dealer);
   const dealerBlackjack = secret.dealer.length === 2 && dealerValue.total === 21;
-  const payouts = secret.hands.map((hand) => {
+  const payouts: BlackjackHandOutcome[] = secret.hands.map((hand) => {
     const value = blackjackValue(hand.cards);
     const natural = isNatural(hand);
     if (value.total > 21) return { betCents: hand.betCents, payoutCents: 0, outcome: "bust" };
@@ -155,12 +188,19 @@ function settleRound(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Pr
   secret.phase = "settled";
   secret.activeHand = -1;
   secret.hands = secret.hands.map((hand) => ({ ...hand, status: hand.status === "active" ? "stood" : hand.status }));
-  const settled = { ...publicState(secret, true), dealerBlackjack, insurancePayout, payouts, totalPayout };
+  const settled: BlackjackSettled = {
+    ...publicState(secret, true),
+    dealerBlackjack,
+    insurancePayout,
+    payouts,
+    totalPayout,
+  };
   return {
     ...snapshot,
     secret,
     publicState: publicState(secret, true),
     multiplier,
+    payoutCents: totalPayout,
     status: "settled",
     settledResult: settled,
   };
@@ -182,10 +222,11 @@ function advance(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Progre
 function prepareAfterInsurance(secret: BlackjackSecret, snapshot: ProgressionSnapshot): ProgressionSnapshot {
   const dealerBlackjack = secret.dealer.length === 2 && blackjackValue(secret.dealer).total === 21;
   if (dealerBlackjack) return settleRound(secret, snapshot);
-  const onlyHand = secret.hands.length === 1 ? secret.hands[0] : null;
-  if (onlyHand && isNatural(onlyHand)) return settleRound(secret, snapshot);
+  standNaturals(secret);
+  const firstActive = secret.hands.findIndex((hand) => hand.status === "active");
+  if (firstActive < 0) return settleRound(secret, snapshot);
   secret.phase = "player";
-  secret.activeHand = 0;
+  secret.activeHand = firstActive;
   return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active" };
 }
 
@@ -193,7 +234,13 @@ export const blackjackGame: ProgressionEngine = {
   metadata: gameCatalogById.get("blackjack")!,
   startSchema: blackjackStartSchema,
   actionSchema: blackjackActionSchema,
-  start: (_input, context) => {
+  resolveStake: (input, requestedAmountCents) => {
+    const spots = resolveSpots(input, requestedAmountCents);
+    return spots.reduce((sum, spot) => sum + spot, 0);
+  },
+  start: (input, context) => {
+    const spots = resolveSpots(input, context.betCents);
+    const totalStake = spots.reduce((sum, spot) => sum + spot, 0);
     const shoe = shuffleDeck(createDeck(6), context.random);
     const secret: BlackjackSecret = {
       shoe,
@@ -203,35 +250,34 @@ export const blackjackGame: ProgressionEngine = {
       activeHand: 0,
       phase: "player",
       insuranceBet: 0,
-      originalBet: context.betCents,
-      totalStake: context.betCents,
+      originalBet: totalStake,
+      totalStake,
     };
-    secret.hands = [
-      {
-        cards: [drawCard(secret), drawCard(secret)],
-        betCents: context.betCents,
-        status: "active",
-        fromSplit: false,
-        doubled: false,
-      },
-    ];
+    secret.hands = spots.map((betCents) => ({
+      cards: [drawCard(secret), drawCard(secret)],
+      betCents,
+      status: "active" as const,
+      fromSplit: false,
+      doubled: false,
+    }));
     secret.dealer = [drawCard(secret), drawCard(secret)];
-    const dealerUpcardAce = rankOf(secret.dealer[0]) === "A";
     const dealerBlackjack = secret.dealer.length === 2 && blackjackValue(secret.dealer).total === 21;
-    const playerBlackjack = isNatural(secret.hands[0]);
     const snapshot: ProgressionSnapshot = {
       secret,
       publicState: publicState(secret),
       multiplier: 0,
       status: "active",
     };
-    if (dealerUpcardAce) {
+    if (rankOf(secret.dealer[0]) === "A") {
       secret.phase = "insurance";
       return { ...snapshot, publicState: publicState(secret) };
     }
     if (dealerBlackjack) return settleRound(secret, snapshot);
-    if (playerBlackjack) return settleRound(secret, snapshot);
-    return snapshot;
+    standNaturals(secret);
+    const firstActive = secret.hands.findIndex((hand) => hand.status === "active");
+    if (firstActive < 0) return settleRound(secret, snapshot);
+    secret.activeHand = firstActive;
+    return { ...snapshot, publicState: publicState(secret) };
   },
   act: (snapshot, action) => {
     const parsed = blackjackActionSchema.parse(action);
@@ -279,7 +325,7 @@ export const blackjackGame: ProgressionEngine = {
     if (parsed.type === "split") {
       if (hand.cards.length !== 2) throw new Error("Split is only available on the first two cards");
       if (rankOf(hand.cards[0]) !== rankOf(hand.cards[1])) throw new Error("The cards must match");
-      if (secret.hands.length >= 4) throw new Error("Maximum four hands");
+      if (secret.hands.length >= BLACKJACK_MAX_HANDS) throw new Error("Maximum hands reached");
       const movedCard = hand.cards.pop()!;
       const newHand: BlackjackHand = {
         cards: [movedCard, drawCard(secret)],

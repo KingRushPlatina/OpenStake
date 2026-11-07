@@ -1,5 +1,12 @@
 export type HandStatus = "active" | "stood" | "bust";
 
+export const BLACKJACK_CHIPS_CENTS = [100, 500, 2_500, 10_000, 50_000, 100_000] as const;
+
+export const BLACKJACK_MAX_SPOTS = 4;
+export const BLACKJACK_MAX_HANDS = 8;
+export const BLACKJACK_MAX_HAND_BET_CENTS = 100_000;
+export const BLACKJACK_MIN_HAND_BET_CENTS = 100;
+
 export type PublicHand = {
   cards: string[];
   total: number;
@@ -9,6 +16,12 @@ export type PublicHand = {
   fromSplit: boolean;
   doubled: boolean;
   active: boolean;
+};
+
+export type BlackjackHandOutcome = {
+  betCents: number;
+  payoutCents: number;
+  outcome: string;
 };
 
 export type BlackjackState = {
@@ -25,7 +38,7 @@ export type BlackjackState = {
   message: string;
   dealerBlackjack?: boolean;
   insurancePayout?: number;
-  payouts?: { betCents: number; payoutCents: number; outcome: string }[];
+  payouts?: BlackjackHandOutcome[];
   totalPayout?: number;
 };
 
