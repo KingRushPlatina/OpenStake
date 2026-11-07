@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GameMetadata } from "@/modules/games/types";
 import { Button } from "@/components/ui/button";
+import { useFaucetClaim } from "@/components/casino/use-faucet-claim";
 import { cn } from "@/lib/client-utils";
 import { formatCents, parseAmountToCents } from "@/lib/money";
 
@@ -45,7 +46,9 @@ export function BetAmountControl({
   disabled?: boolean;
 }) {
   const amountCents = parseAmountToCents(amount);
+  const claim = useFaucetClaim();
   const setCents = (cents: number) => setAmount((Math.max(0, cents) / 100).toFixed(2));
+  const shortfall = amountCents > balanceCents;
 
   return (
     <div>
@@ -99,6 +102,19 @@ export function BetAmountControl({
           </button>
         ))}
       </div>
+      {shortfall ? (
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-red/25 bg-red/[0.06] px-2.5 py-2">
+          <p className="text-[9px] leading-4 text-red/85">Your balance is lower than this stake.</p>
+          <button
+            type="button"
+            onClick={() => claim.mutate()}
+            disabled={claim.isPending}
+            className="shrink-0 rounded-md bg-gold px-2 py-1 text-[9px] font-semibold text-[#14100a] transition hover:bg-gold-strong disabled:opacity-50"
+          >
+            {claim.isPending ? "Reloading…" : "Reload"}
+          </button>
+        </div>
+      ) : null}
       {!amountCents || amountCents < game.minBetCents || amountCents > game.maxBetCents ? (
         <p className="mt-2 text-[9px] text-red/80">
           Stake must be between {formatCents(game.minBetCents)} and {formatCents(game.maxBetCents)}.

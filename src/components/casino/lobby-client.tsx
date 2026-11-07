@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GameTile } from "@/components/casino/game-tile";
 import { LiveBets } from "@/components/casino/live-bets";
+import { TopUpNotice } from "@/components/casino/top-up-notice";
 import { TablePreview } from "@/components/casino/table-preview";
 import { avatarTone, cn, initials } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
@@ -72,6 +73,8 @@ export function LobbyClient() {
         </div>
         <TablePreview />
       </section>
+
+      <TopUpNotice minBetCents={Math.min(...gameCatalog.map((game) => game.minBetCents))} />
 
       <section id="games" className="scroll-mt-24">
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line/70 pb-5">

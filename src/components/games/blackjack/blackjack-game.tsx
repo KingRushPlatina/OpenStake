@@ -13,6 +13,8 @@ import { useSession } from "@/components/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LiveBets } from "@/components/casino/live-bets";
+import { TopUpNotice } from "@/components/casino/top-up-notice";
+import { useFaucetClaim } from "@/components/casino/use-faucet-claim";
 import { useGameResult } from "@/components/games/use-game-result";
 import { useProgressionBet } from "@/components/games/use-progression-bet";
 import { BlackjackTable } from "./blackjack-table";
@@ -27,6 +29,7 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
   const [amount, setAmount] = useState("1.00");
   const { activeBet, setActiveBet } = useProgressionBet(game.id);
   const result = useGameResult("Blackjack");
+  const claim = useFaucetClaim();
   const state = activeBet?.result as BlackjackState | undefined;
   const isActive = activeBet?.status === "active";
   const settled = activeBet?.status === "settled";
@@ -115,6 +118,8 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
         </div>
       </div>
 
+      <TopUpNotice minBetCents={game.minBetCents} />
+
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <aside className="order-first space-y-4 xl:order-2 xl:sticky xl:top-[96px] xl:self-start">
           <section className="surface p-5">
@@ -159,6 +164,19 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
                   Max
                 </button>
               </div>
+              {amountCents > balance ? (
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-red/25 bg-red/[0.06] px-2.5 py-2">
+                  <p className="text-[9px] leading-4 text-red/85">Your balance is lower than this stake.</p>
+                  <button
+                    type="button"
+                    onClick={() => claim.mutate()}
+                    disabled={claim.isPending}
+                    className="shrink-0 rounded-md bg-gold px-2 py-1 text-[9px] font-semibold text-[#14100a] transition hover:bg-gold-strong disabled:opacity-50"
+                  >
+                    {claim.isPending ? "Reloading…" : "Reload"}
+                  </button>
+                </div>
+              ) : null}
               <div className="mt-2 grid grid-cols-4 gap-1.5">
                 {chipOptions.map((value) => (
                   <button

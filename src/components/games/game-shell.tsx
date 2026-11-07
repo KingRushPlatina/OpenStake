@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GameMark } from "@/components/casino/game-mark";
 import { LiveBets } from "@/components/casino/live-bets";
+import { TopUpNotice } from "@/components/casino/top-up-notice";
 import { formatCents } from "@/lib/money";
 import { HistoryTable } from "./history-table";
 
@@ -55,6 +56,8 @@ export function GameShell({
           </Button>
         </div>
       </header>
+
+      <TopUpNotice minBetCents={game.minBetCents} />
 
       <div className="grid items-start gap-5 xl:grid-cols-[280px_minmax(0,1fr)_280px]">
         <aside className="min-w-0 space-y-4">{controls}</aside>
