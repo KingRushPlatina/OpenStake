@@ -4,7 +4,6 @@ export const BLACKJACK_CHIPS_CENTS = [100, 500, 2_500, 10_000, 50_000, 100_000] 
 
 export const BLACKJACK_MAX_SPOTS = 4;
 export const BLACKJACK_MAX_HANDS = 8;
-export const BLACKJACK_MAX_HAND_BET_CENTS = 100_000;
 export const BLACKJACK_MIN_HAND_BET_CENTS = 100;
 
 export type PublicHand = {

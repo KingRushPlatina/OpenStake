@@ -30,7 +30,6 @@ export type GameMetadata = {
   icon: string;
   rtp: string;
   minBetCents: number;
-  maxBetCents: number;
   maxWinMultiplier: number;
   available: boolean;
 };

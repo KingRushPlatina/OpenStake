@@ -96,17 +96,18 @@ export function ChipButton({
   );
 }
 
-function chipCounts(amountCents: number) {
+function chipList(amountCents: number) {
   let remaining = Math.max(0, Math.floor(amountCents));
-  const counts: { cents: number; count: number }[] = [];
+  const chips: number[] = [];
   for (const denomination of denominations) {
+    if (chips.length >= 4) break;
     const count = Math.floor(remaining / denomination.cents);
-    if (count > 0) {
-      counts.push({ cents: denomination.cents, count });
-      remaining -= count * denomination.cents;
+    for (let index = 0; index < count && chips.length < 4; index += 1) {
+      chips.push(denomination.cents);
+      remaining -= denomination.cents;
     }
   }
-  return counts;
+  return chips;
 }
 
 export function ChipStack({
@@ -118,7 +119,7 @@ export function ChipStack({
   size?: ChipSize;
   className?: string;
 }) {
-  const counts = chipCounts(amountCents);
+  const chips = chipList(amountCents);
   if (amountCents <= 0) {
     return (
       <span className={cn("grid size-8 place-items-center rounded-full border border-dashed border-gold/30 text-[9px] text-gold/45", className)}>
@@ -128,13 +129,13 @@ export function ChipStack({
   }
   return (
     <span className={cn("relative inline-flex items-center", className)}>
-      {counts.slice(0, 3).map((chip, index) => (
+      {chips.map((chip, index) => (
         <span
-          key={chip.cents}
+          key={`${chip}-${index}`}
           className={cn("relative", index > 0 && "-ml-3")}
           style={{ transform: `translateY(${index * -2}px)` }}
         >
-          <ChipFace cents={chip.cents} size={size} />
+          <ChipFace cents={chip} size={size} />
         </span>
       ))}
     </span>

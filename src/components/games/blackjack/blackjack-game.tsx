@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import type { GameMetadata, PublicBet } from "@/modules/games/types";
 import {
   BLACKJACK_CHIPS_CENTS,
-  BLACKJACK_MAX_HAND_BET_CENTS,
   BLACKJACK_MAX_SPOTS,
   type BlackjackAction,
   type BlackjackState,
@@ -120,11 +119,6 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
       toast.error("Not enough credits", { description: `Top up to place a ${formatCents(selectedChip)} chip.` });
       return;
     }
-    const current = spots[index]?.reduce((sum, chip) => sum + chip, 0) ?? 0;
-    if (current + selectedChip > BLACKJACK_MAX_HAND_BET_CENTS) {
-      toast.error("Box limit", { description: `Each box takes up to ${formatCents(BLACKJACK_MAX_HAND_BET_CENTS)}.` });
-      return;
-    }
     setSpots((previous) => previous.map((chips, chipIndex) => (chipIndex === index ? [...chips, selectedChip] : chips)));
   };
 
@@ -225,15 +219,19 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
                 <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{formatCents(Math.floor(displayedStake * 2.5))}</p>
               </div>
               <div className="rounded-xl border border-line/60 bg-surface-2/60 px-3 py-2.5">
-                <p className="text-[8px] uppercase tracking-[0.16em] text-muted/45">{settled ? "Last result" : "Per box"}</p>
-                <p className={cnResult(settled ? net : BLACKJACK_MAX_HAND_BET_CENTS, settled)}>{settled ? (net > 0 ? `+${formatCents(net)}` : formatCents(net)) : "$1K max"}</p>
+                <p className="text-[8px] uppercase tracking-[0.16em] text-muted/45">{settled ? "Last result" : "Table max"}</p>
+                <p className={cnResult(settled ? net : 0, settled)}>{settled ? (net > 0 ? `+${formatCents(net)}` : formatCents(net)) : "No limit"}</p>
               </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-line/60 bg-[#08110d] px-3.5 py-3">
               <div className="flex items-center justify-between text-[9px]">
-                <span className="uppercase tracking-[0.16em] text-muted/45">Table limits</span>
-                <span className="font-medium text-ink/80">$1 — $1,000 / box</span>
+                <span className="uppercase tracking-[0.16em] text-muted/45">Table minimum</span>
+                <span className="font-medium text-ink/80">{formatCents(game.minBetCents)} / box</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[9px]">
+                <span className="uppercase tracking-[0.16em] text-muted/45">Table maximum</span>
+                <span className="font-medium text-ink/80">No limit</span>
               </div>
               <div className="mt-2 flex items-center justify-between text-[9px]">
                 <span className="uppercase tracking-[0.16em] text-muted/45">Blackjack pays</span>
@@ -251,8 +249,8 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
                 <p className="mt-1 text-[13px] font-semibold text-ink tabular-nums">{formatCents(isActive || settled ? totalStake : totalOnTable)}</p>
               </div>
               <div className="text-right">
-                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">{settled ? "Returned" : "Bet limit"}</p>
-                <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{formatCents(settled ? activeBet?.payoutCents ?? 0 : game.maxBetCents)}</p>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">{settled ? "Returned" : "Table max"}</p>
+                <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{settled ? formatCents(activeBet?.payoutCents ?? 0) : "No limit"}</p>
               </div>
             </div>
           </section>

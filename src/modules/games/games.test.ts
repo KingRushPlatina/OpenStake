@@ -182,6 +182,22 @@ describe("blackjack", () => {
     expect(settledResult(settled).payouts).toHaveLength(2);
   });
 
+  it("keeps the active box when a hit does not finish the hand", () => {
+    const start = startWith(["10S", "6H", "8D", "8C", "9S", "7H", "2S"], 600, { spots: [100, 500] });
+    expect(liveState(start).activeHand).toBe(0);
+    const hit = play(start, { type: "hit" });
+    const state = liveState(hit);
+    expect(state.activeHand).toBe(0);
+    expect(state.hands[0]?.status).toBe("active");
+    expect(state.hands[0]?.total).toBe(18);
+    const next = play(hit, { type: "stand" });
+    expect(liveState(next).activeHand).toBe(1);
+  });
+
+  it("does not cap how many chips a box can carry", () => {
+    expect(blackjackGame.resolveStake?.({ spots: [5_000_000] }, 0)).toBe(5_000_000);
+  });
+
   it("stands a natural in one box and keeps playing the others", () => {
     const start = startWith(["AS", "KH", "10D", "9C", "9S", "7H", "6S"], 600, { spots: [100, 500] });
     expect(start.status).toBe("active");

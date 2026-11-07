@@ -38,9 +38,6 @@ function validateAmount(metadata: GameMetadata, amountCents: number) {
   if (!Number.isInteger(amountCents) || amountCents < metadata.minBetCents) {
     throw new AppError("BET_LIMIT", `Minimum bet is ${metadata.minBetCents / 100} USD`, 400);
   }
-  if (amountCents > metadata.maxBetCents) {
-    throw new AppError("BET_LIMIT", `Maximum bet is ${metadata.maxBetCents / 100} USD`, 400);
-  }
 }
 
 function cappedMultiplier(metadata: GameMetadata, multiplier: number) {

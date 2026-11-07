@@ -10,7 +10,7 @@ import { formatCents, parseAmountToCents } from "@/lib/money";
 export function useBetAmount(game: GameMetadata) {
   const [amount, setAmount] = useState("1.00");
   const amountCents = parseAmountToCents(amount);
-  const valid = amountCents >= game.minBetCents && amountCents <= game.maxBetCents;
+  const valid = amountCents >= game.minBetCents;
   return { amount, setAmount, amountCents, valid };
 }
 
@@ -56,7 +56,7 @@ export function BetAmountControl({
         <label className="text-[10px] font-medium text-muted" htmlFor="bet-amount">
           Stake
         </label>
-        <span className="text-[9px] text-muted/45">${game.minBetCents / 100} — ${game.maxBetCents / 100}</span>
+        <span className="text-[9px] text-muted/45">Min ${game.minBetCents / 100} · no maximum</span>
       </div>
       <div className="mt-2 flex h-12 items-center rounded-xl border border-line bg-[#0a0e0c] px-3 transition focus-within:border-gold/40">
         <span className="text-sm text-muted">$</span>
@@ -72,14 +72,13 @@ export function BetAmountControl({
           onBlur={() => {
             const cents = parseAmountToCents(amount);
             if (cents < game.minBetCents) setCents(game.minBetCents);
-            else if (cents > game.maxBetCents) setCents(game.maxBetCents);
           }}
           className="h-full min-w-0 flex-1 bg-transparent px-2 text-[15px] font-semibold text-ink outline-none disabled:opacity-55"
         />
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setCents(Math.min(game.maxBetCents, Math.max(game.minBetCents, balanceCents)))}
+          onClick={() => setCents(Math.max(game.minBetCents, balanceCents))}
           className="text-[10px] font-semibold text-gold/80 transition hover:text-gold disabled:opacity-40"
         >
           Max
@@ -88,8 +87,8 @@ export function BetAmountControl({
       <div className="mt-2 grid grid-cols-3 gap-1.5">
         {[
           { label: "½", value: Math.max(game.minBetCents, Math.floor(amountCents / 2)) },
-          { label: "2×", value: Math.min(game.maxBetCents, amountCents * 2) },
-          { label: "All in", value: Math.min(game.maxBetCents, Math.max(game.minBetCents, balanceCents)) },
+          { label: "2×", value: amountCents * 2 },
+          { label: "All in", value: Math.max(game.minBetCents, balanceCents) },
         ].map((option) => (
           <button
             key={option.label}
@@ -115,10 +114,8 @@ export function BetAmountControl({
           </button>
         </div>
       ) : null}
-      {!amountCents || amountCents < game.minBetCents || amountCents > game.maxBetCents ? (
-        <p className="mt-2 text-[9px] text-red/80">
-          Stake must be between {formatCents(game.minBetCents)} and {formatCents(game.maxBetCents)}.
-        </p>
+      {!amountCents || amountCents < game.minBetCents ? (
+        <p className="mt-2 text-[9px] text-red/80">Minimum bet is {formatCents(game.minBetCents)}.</p>
       ) : null}
     </div>
   );

@@ -8,7 +8,6 @@ import {
   shuffleDeck,
 } from "../cards";
 import {
-  BLACKJACK_MAX_HAND_BET_CENTS,
   BLACKJACK_MAX_HANDS,
   BLACKJACK_MAX_SPOTS,
   BLACKJACK_MIN_HAND_BET_CENTS,
@@ -17,7 +16,7 @@ import {
 
 export const blackjackStartSchema = z
   .object({
-    spots: z.array(z.number().int().min(BLACKJACK_MIN_HAND_BET_CENTS).max(BLACKJACK_MAX_HAND_BET_CENTS)).min(1).max(BLACKJACK_MAX_SPOTS).optional(),
+    spots: z.array(z.number().int().min(BLACKJACK_MIN_HAND_BET_CENTS)).min(1).max(BLACKJACK_MAX_SPOTS).optional(),
   })
   .strict();
 
@@ -207,15 +206,15 @@ function settleRound(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Pr
 }
 
 function advance(secret: BlackjackSecret, snapshot: ProgressionSnapshot): ProgressionSnapshot {
-  const next = secret.hands.findIndex((hand, index) => index > secret.activeHand && hand.status === "active");
-  const anyActive = secret.hands.some((hand) => hand.status === "active");
-  if (!anyActive) return settleRound(secret, snapshot);
-  if (next >= 0) {
-    secret.activeHand = next;
+  const current = secret.hands[secret.activeHand];
+  if (current?.status === "active") {
     return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active" };
   }
+  const anyActive = secret.hands.some((hand) => hand.status === "active");
+  if (!anyActive) return settleRound(secret, snapshot);
+  const next = secret.hands.findIndex((hand, index) => index > secret.activeHand && hand.status === "active");
   const firstActive = secret.hands.findIndex((hand) => hand.status === "active");
-  secret.activeHand = firstActive >= 0 ? firstActive : 0;
+  secret.activeHand = next >= 0 ? next : firstActive;
   return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active" };
 }
 

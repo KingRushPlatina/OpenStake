@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import { Hand, RotateCcw, ShieldCheck, Trash2, X } from "lucide-react";
 import type { PublicBet } from "@/modules/games/types";
 import {
-  BLACKJACK_MAX_HAND_BET_CENTS,
   type BlackjackAction,
   type BlackjackHandOutcome,
   type BlackjackState,
@@ -97,8 +96,8 @@ function HandBox({
         </span>
         <span
           className={cn(
-            "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tabular-nums",
-            hand.status === "bust" ? "border-red/25 text-red" : hand.total === 21 ? "border-gold/30 text-gold" : "border-white/10 text-ink/80",
+            "rounded-xl border px-2.5 py-1 font-display text-xl font-semibold leading-none tabular-nums sm:text-2xl",
+            hand.status === "bust" ? "border-red/25 text-red" : hand.total === 21 ? "border-gold/30 text-gold" : "border-white/10 text-ink/90",
           )}
         >
           {hand.total}
@@ -119,7 +118,7 @@ function HandBox({
         <ChipStack amountCents={hand.betCents} size="xs" />
         <div className="text-right">
           <p className={cn("text-[7px] font-semibold uppercase tracking-[0.14em]", state.tone)}>{state.label}</p>
-          <p className="mt-0.5 text-[9px] font-semibold tabular-nums text-ink/75">{formatCents(hand.betCents)}</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-ink/80">{formatCents(hand.betCents)}</p>
           {settled && payout ? (
             <p className={cn("text-[8px] font-semibold tabular-nums", payout.payoutCents > hand.betCents ? "text-green" : payout.payoutCents === hand.betCents ? "text-ink/70" : "text-muted/50")}>
               {payout.payoutCents > 0 ? `+${formatCents(payout.payoutCents)}` : "—"}
@@ -215,7 +214,6 @@ export function BlackjackTable({
   spots,
   selectedChip,
   balanceCents,
-  maxHandCents = BLACKJACK_MAX_HAND_BET_CENTS,
   net,
   availableActions,
   onAction,
@@ -238,7 +236,6 @@ export function BlackjackTable({
   spots: number[][];
   selectedChip: number;
   balanceCents: number;
-  maxHandCents?: number;
   net: number;
   availableActions: string[];
   onAction: (action: BlackjackAction) => void;
@@ -296,7 +293,7 @@ export function BlackjackTable({
             <span className="hidden items-center gap-1 sm:flex">
               <ShieldCheck className="size-2.5" /> Verifiable
             </span>
-            <span className="rounded-full border border-white/10 px-2.5 py-1">$1 — $1K / box</span>
+            <span className="rounded-full border border-white/10 px-2.5 py-1">Min $1 / box</span>
           </div>
         </div>
 
@@ -305,7 +302,7 @@ export function BlackjackTable({
             <div className="flex items-center gap-2">
               <p className="text-[8px] font-semibold uppercase tracking-[0.3em] text-ink/35">Dealer</p>
               {state?.dealerTotal !== null && state?.dealerTotal !== undefined ? (
-                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-ink/70">{state.dealerTotal}</span>
+                <span className="rounded-full border border-white/10 px-2.5 py-1 font-display text-base font-semibold text-ink/90 sm:text-lg">{state.dealerTotal}</span>
               ) : null}
               {state?.dealerBlackjack ? <span className="text-[8px] font-semibold uppercase tracking-[0.14em] text-gold">blackjack</span> : null}
             </div>
@@ -359,7 +356,7 @@ export function BlackjackTable({
 
           {hands.length > 0 && showHands ? (
             <p className="mt-2 text-center text-[8px] uppercase tracking-[0.16em] text-muted/35">
-              {hands.length === 1 ? "1 box in play" : `${hands.length} boxes in play`} · max {formatCents(maxHandCents)} per box
+              {hands.length === 1 ? "1 box in play" : `${hands.length} boxes in play`}
             </p>
           ) : null}
 
