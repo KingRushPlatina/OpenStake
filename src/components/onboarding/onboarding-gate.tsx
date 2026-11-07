@@ -76,7 +76,7 @@ export function OnboardingGate() {
             Set up your seat
           </DialogTitle>
           <DialogDescription className="relative mt-2 max-w-sm">
-            Pick a name and an avatar. Everything is play money and your seat lives in this browser.
+            Pick a name and a meme-ready avatar. Everything is play money and your seat lives in this browser.
           </DialogDescription>
         </div>
 

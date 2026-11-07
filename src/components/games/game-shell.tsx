@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { GameMetadata } from "@/modules/games/types";
 import { useSession } from "@/components/session-provider";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { GameMark } from "@/components/casino/game-mark";
 import { LiveBets } from "@/components/casino/live-bets";
 import { TopUpNotice } from "@/components/casino/top-up-notice";
@@ -49,11 +48,6 @@ export function GameShell({
             <span className="text-muted">Balance</span>
             <span className="font-semibold tabular-nums text-ink">{formatCents(session.wallet.balanceCents)}</span>
           </span>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/fairness">
-              <ShieldCheck className="size-3.5 text-green" /> Fairness
-            </Link>
-          </Button>
         </div>
       </header>
 

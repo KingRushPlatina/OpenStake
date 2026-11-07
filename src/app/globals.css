@@ -159,6 +159,40 @@ button {
   }
 }
 
+@keyframes dice-tumble {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-13deg) scale(1.05);
+  }
+  50% {
+    transform: rotate(11deg) scale(0.97);
+  }
+  75% {
+    transform: rotate(-7deg) scale(1.03);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes avatar-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) rotate(2deg) scale(1.04);
+  }
+}
+
+.avatar-meme {
+  display: inline-block;
+  animation: avatar-bob 3.6s ease-in-out infinite;
+  transform-origin: 50% 70%;
+}
+
 .roulette-hotspot {
   fill: transparent;
   cursor: pointer;

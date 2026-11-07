@@ -110,7 +110,7 @@ export function BetAmountControl({
             disabled={claim.isPending}
             className="shrink-0 rounded-md bg-gold px-2 py-1 text-[9px] font-semibold text-[#14100a] transition hover:bg-gold-strong disabled:opacity-50"
           >
-            {claim.isPending ? "Reloading…" : "Reload"}
+            {claim.isPending ? "Rolling…" : "Top up"}
           </button>
         </div>
       ) : null}

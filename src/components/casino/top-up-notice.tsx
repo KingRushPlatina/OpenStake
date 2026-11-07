@@ -25,8 +25,8 @@ export function TopUpNotice({ minBetCents }: { minBetCents: number }) {
         <div>
           <p className="text-[12px] font-semibold text-ink">You are out of credits</p>
           <p className="mt-0.5 text-[10px] leading-5 text-muted/70">
-            Your balance is below the {formatCents(minBetCents)} minimum stake. Reload to{" "}
-            {formatCents(session.faucet.targetCents)} and keep playing.
+            Your balance is below the {formatCents(minBetCents)} minimum stake. Win the dice challenge to fill back up
+            to {formatCents(session.faucet.targetCents)} and keep playing.
           </p>
         </div>
       </div>
@@ -38,7 +38,7 @@ export function TopUpNotice({ minBetCents }: { minBetCents: number }) {
         className="shrink-0"
       >
         <Plus className="size-3.5" />
-        {claim.isPending ? "Reloading…" : `Reload ${formatCents(refillCents)}`}
+        {claim.isPending ? "Rolling…" : `Roll for ${formatCents(refillCents)}`}
       </Button>
     </div>
   );

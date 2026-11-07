@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, Pencil, ShieldCheck, Trophy } from "lucide-react";
+import { Camera, Check, Pencil, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
 import { UserAvatar } from "@/components/user-avatar";
@@ -115,9 +115,6 @@ export function ProfileClient() {
           <Button asChild variant="secondary" size="sm">
             <Link href="/leaderboard"><Trophy className="size-3.5 text-gold" /> Leaderboard</Link>
           </Button>
-          <Button asChild variant="secondary" size="sm">
-            <Link href="/fairness"><ShieldCheck className="size-3.5 text-green" /> Fairness</Link>
-          </Button>
         </div>
       </section>
 
@@ -190,7 +187,7 @@ export function ProfileClient() {
         <DialogContent className="p-6 sm:p-7">
           <DialogTitle className="font-display text-2xl">Change avatar</DialogTitle>
           <DialogDescription className="mt-1.5">
-            Pick a preset or upload a photo. Your seat updates everywhere instantly.
+            Pick a meme face, a cute critter or upload your own. Your seat updates everywhere instantly.
           </DialogDescription>
           <div className="mt-5">
             <AvatarPicker value={avatar} onChange={setAvatar} disabled={updateAvatar.isPending} />

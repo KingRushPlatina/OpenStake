@@ -34,8 +34,8 @@ export function useGameResult(gameName: string) {
     (error: unknown) => {
       if (error instanceof ApiError && error.code === "INSUFFICIENT_FUNDS") {
         toast.error("Out of credits", {
-          description: `Your stake is higher than your balance. Reload to ${formatCents(session.faucet.targetCents)} and try again.`,
-          action: { label: "Reload", onClick: () => refill() },
+          description: `Your stake is higher than your balance. Win the dice challenge to fill back up to ${formatCents(session.faucet.targetCents)}.`,
+          action: { label: "Top up", onClick: () => refill() },
         });
         return;
       }

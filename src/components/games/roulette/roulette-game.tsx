@@ -126,7 +126,7 @@ export function RouletteGame({ game }: { game: GameMetadata }) {
       if (locked) return;
       if (totalStake + selectedChip > balance) {
         toast.error("That chip is above your balance", {
-          description: "Remove a chip or reload your credits.",
+          description: "Remove a chip or win a top-up on the dice.",
         });
         return;
       }
@@ -161,7 +161,7 @@ export function RouletteGame({ game }: { game: GameMetadata }) {
     if (locked || lastPlacements.length === 0) return;
     if (totalOf(lastPlacements) > balance) {
       toast.error("Not enough credits to repeat that bet", {
-        description: "Reload your balance and try again.",
+        description: "Win a dice top-up and try again.",
       });
       return;
     }
@@ -253,7 +253,7 @@ export function RouletteGame({ game }: { game: GameMetadata }) {
                   disabled={claim.isPending}
                   className="shrink-0 rounded-md bg-gold px-2 py-1 text-[9px] font-semibold text-[#14100a] transition hover:bg-gold-strong disabled:opacity-50"
                 >
-                  {claim.isPending ? "Reloading…" : "Reload"}
+                  {claim.isPending ? "Rolling…" : "Top up"}
                 </button>
               </div>
             ) : null}

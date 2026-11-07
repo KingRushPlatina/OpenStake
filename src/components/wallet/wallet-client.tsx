@@ -12,7 +12,7 @@ import type { TransactionRow } from "@/types/api";
 
 const typeLabels: Record<string, string> = {
   welcome: "Welcome credit",
-  faucet: "Instant top-up",
+  faucet: "Top-up win",
   bet: "Wager placed",
   payout: "Wager return",
   refund: "Refund",
@@ -66,10 +66,10 @@ export function WalletClient() {
             <Gift className="size-4 text-gold" />
           </span>
           <div>
-            <p className="text-[13px] font-medium text-ink">Instant top-up</p>
+            <p className="text-[13px] font-medium text-ink">Top-up challenge</p>
             <p className="mt-1 max-w-md text-[10px] leading-5 text-muted/65">
-              Your minimum balance is {formatCents(session.faucet.targetCents)}. Tap add whenever you are below it and
-              the difference is credited instantly.
+              Your balance is capped at {formatCents(session.faucet.targetCents)}. When you are below it, pick a number
+              and roll the die. Match it to claim the gap back up to the cap.
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function WalletClient() {
           onClick={() => claim.mutate()}
         >
           <Plus className="size-3.5" />
-          {belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : `Balance at ${formatCents(session.faucet.targetCents)}`}
+          {belowTarget ? `Roll for ${formatCents(session.faucet.amountCents)}` : `Balance at ${formatCents(session.faucet.targetCents)}`}
         </Button>
       </section>
 

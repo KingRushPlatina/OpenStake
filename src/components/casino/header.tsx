@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutGrid, Loader2, Plus, ShieldCheck, Trophy, UserRound, Wallet } from "lucide-react";
+import { ChevronDown, LayoutGrid, Loader2, Plus, Trophy, UserRound, Wallet } from "lucide-react";
 import { useSession } from "@/components/session-provider";
 import { UserAvatar } from "@/components/user-avatar";
 import { useFaucetClaim } from "@/components/casino/use-faucet-claim";
@@ -109,8 +109,8 @@ export function Header() {
                   ? "bg-green/15 text-green hover:bg-green/25"
                   : "text-muted/30 disabled:cursor-default",
               )}
-              aria-label={belowTarget ? `Add ${formatCents(session.faucet.amountCents)} to reach ${formatCents(session.faucet.targetCents)}` : `Balance is at ${formatCents(session.faucet.targetCents)}`}
-              title={belowTarget ? `Add ${formatCents(session.faucet.amountCents)}` : `Balance is at ${formatCents(session.faucet.targetCents)}`}
+              aria-label={belowTarget ? `Roll for ${formatCents(session.faucet.amountCents)} to reach ${formatCents(session.faucet.targetCents)}` : `Balance is at ${formatCents(session.faucet.targetCents)}`}
+              title={belowTarget ? `Roll for ${formatCents(session.faucet.amountCents)}` : `Balance is at ${formatCents(session.faucet.targetCents)}`}
             >
               {claim.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-4" />}
             </button>
@@ -151,11 +151,7 @@ export function Header() {
                   <UserRound className="size-3.5" /> My stats
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/fairness">
-                  <ShieldCheck className="size-3.5" /> Provably fair
-                </Link>
-              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

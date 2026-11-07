@@ -4,9 +4,10 @@ OpenStake is a server-authoritative, play-money originals floor with the visual 
 
 ## The floor
 
-Ten original games share one wallet, one seed system and one design language:
+Eleven original games share one wallet, one seed system and one design language:
 
 - **Blackjack** — a live-feel table with $1–$1,000 chips, four betting boxes, six decks, 3:2 naturals, doubles, splits and insurance
+- **Roulette** — a single-zero European wheel with the full felt, inside and outside bets and a live ball
 - **Dice** — choose a side and a win chance
 - **Limbo** — pick a target multiplier
 - **Plinko** — five row counts and three risk levels
@@ -21,12 +22,12 @@ Instant games settle in a single request. Table and progression games use an exp
 
 ## Platform
 
-- First-visit seat setup: display name, avatar preset or uploaded photo, no password or email
+- First-visit seat setup: display name, animated meme/cute avatar preset or uploaded photo, no password or email
 - Automatic temporary guest seats that live in the browser session
-- $10,000 starting balance and an instant top-up to $10,000 whenever the balance drops below target
+- $100 starting balance and a dice top-up challenge that refills the gap up to the $100 cap
 - No maximum bet on any game: the wallet balance is the only limit
 - Ledger wallet with idempotent bets, transactional row locks and refunds
-- Provably fair seed pairs with SHA-256 commitments and HMAC-SHA256 outcomes
+- Server-side seed pairs with SHA-256 commitments and HMAC-SHA256 outcomes
 - Per-round verification data, recent bets and previous seed pairs
 - Leaderboard and live feed driven entirely by real player activity
 - Responsive dark interface with original OpenStake art direction
@@ -118,7 +119,7 @@ Each guest receives a server seed, its SHA-256 hash and an editable client seed.
 HMAC-SHA256(serverSeed, clientSeed:nonce:cursor)
 ```
 
-Rotating a seed pair reveals the previous server seed on the fairness page. The same page lists recent rounds and returns the full verification payload once the seed is revealed.
+Seed pairs are managed server-side. There is no public verification page in the product; the API keeps the commitment and per-round inputs available for internal checks.
 
 ## Live feed
 

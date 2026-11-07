@@ -24,7 +24,7 @@ import { useGameResult } from "@/components/games/use-game-result";
 import { useProgressionBet } from "@/components/games/use-progression-bet";
 import { BlackjackTable } from "./blackjack-table";
 import { RecentHands } from "./recent-hands";
-import { FairnessCard, RulesCard } from "./side-cards";
+import { RulesCard } from "./side-cards";
 
 function emptySpots() {
   return Array.from({ length: BLACKJACK_MAX_SPOTS }, () => [] as number[]);
@@ -116,7 +116,7 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
   const placeChip = (index: number) => {
     if (isActive || settled || busy) return;
     if (selectedChip > balance) {
-      toast.error("Not enough credits", { description: `Top up to place a ${formatCents(selectedChip)} chip.` });
+      toast.error("Not enough credits", { description: `Win a dice top-up to place a ${formatCents(selectedChip)} chip.` });
       return;
     }
     setSpots((previous) => previous.map((chips, chipIndex) => (chipIndex === index ? [...chips, selectedChip] : chips)));
@@ -257,7 +257,6 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
 
           <div className="hidden space-y-4 xl:block">
             <RulesCard />
-            <FairnessCard serverSeedHash={session.seed?.serverSeedHash} nonce={session.seed?.nonce} />
           </div>
         </aside>
 
@@ -293,7 +292,6 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
 
           <div className="grid gap-4 md:grid-cols-2 xl:hidden">
             <RulesCard />
-            <FairnessCard serverSeedHash={session.seed?.serverSeedHash} nonce={session.seed?.nonce} />
           </div>
 
           <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]">

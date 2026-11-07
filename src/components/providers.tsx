@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { SessionProvider } from "@/components/session-provider";
+import { TopUpProvider } from "@/components/casino/top-up-provider";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -21,7 +22,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      <SessionProvider>{children}</SessionProvider>
+      <SessionProvider>
+        <TopUpProvider>{children}</TopUpProvider>
+      </SessionProvider>
       <Toaster
         position="top-right"
         theme="dark"

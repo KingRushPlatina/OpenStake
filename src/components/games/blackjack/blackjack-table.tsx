@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Hand, RotateCcw, ShieldCheck, Trash2, X } from "lucide-react";
+import { Hand, RotateCcw, Trash2, X } from "lucide-react";
 import type { PublicBet } from "@/modules/games/types";
 import {
   type BlackjackAction,
@@ -290,9 +290,6 @@ export function BlackjackTable({
             <span className="rounded-full border border-gold/15 bg-black/15 px-2.5 py-1 text-gold/60">Table 01</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1 sm:flex">
-              <ShieldCheck className="size-2.5" /> Verifiable
-            </span>
             <span className="rounded-full border border-white/10 px-2.5 py-1">Min $1 / box</span>
           </div>
         </div>
@@ -416,7 +413,7 @@ export function BlackjackTable({
                     disabled={reloading}
                     className="shrink-0 rounded-md bg-gold px-2 py-1 text-[9px] font-semibold text-[#14100a] transition hover:bg-gold-strong disabled:opacity-50"
                   >
-                    {reloading ? "Reloading…" : "Reload"}
+                    {reloading ? "Rolling…" : "Top up"}
                   </button>
                 </div>
               ) : null}

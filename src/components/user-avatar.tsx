@@ -1,18 +1,6 @@
 import Image from "next/image";
-import { Crown, Flame, Gem, Heart, Moon, Spade, Sparkles, Zap } from "lucide-react";
-import { avatarPresets, type AvatarPreset } from "@/modules/identity/avatars";
+import { avatarPresets, toAvatarPreset, type AvatarPreset } from "@/modules/identity/avatars";
 import { avatarTone, cn, initials } from "@/lib/client-utils";
-
-const icons = {
-  spade: Spade,
-  crown: Crown,
-  comet: Sparkles,
-  gem: Gem,
-  flame: Flame,
-  bolt: Zap,
-  rose: Heart,
-  moon: Moon,
-} as const;
 
 const presetById = new Map<string, (typeof avatarPresets)[number]>(
   avatarPresets.map((preset) => [preset.id, preset]),
@@ -26,12 +14,12 @@ const sizeClasses = {
   xl: "size-16 rounded-full text-lg",
 };
 
-const iconClasses = {
-  xs: "size-3",
-  sm: "size-3.5",
-  md: "size-4",
-  lg: "size-5",
-  xl: "size-7",
+const emojiClasses = {
+  xs: "text-[13px]",
+  sm: "text-[15px]",
+  md: "text-[19px]",
+  lg: "text-[27px]",
+  xl: "text-[36px]",
 };
 
 const pixelSizes = {
@@ -52,17 +40,27 @@ export function AvatarPresetMark({
   className?: string;
 }) {
   const entry = presetById.get(preset) ?? avatarPresets[0];
-  const Icon = icons[entry.icon as keyof typeof icons] ?? Spade;
+  const index = Math.max(
+    0,
+    avatarPresets.findIndex((item) => item.id === entry.id),
+  );
   return (
     <span
       className={cn(
-        "grid shrink-0 place-items-center border border-white/10 bg-gradient-to-br text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
+        "relative grid shrink-0 place-items-center overflow-hidden border border-white/10 bg-gradient-to-br text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]",
         entry.gradient,
         sizeClasses[size],
         className,
       )}
     >
-      <Icon className={cn("drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]", iconClasses[size])} strokeWidth={2.1} />
+      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.28),transparent_55%)]" />
+      <span
+        className={cn("avatar-meme relative leading-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]", emojiClasses[size])}
+        style={{ animationDelay: `${(index % 7) * 0.23}s` }}
+        aria-hidden="true"
+      >
+        {entry.emoji}
+      </span>
     </span>
   );
 }
@@ -103,9 +101,8 @@ export function UserAvatar({
     );
   }
 
-  const preset = presetById.get(avatarPreset ?? "");
-  if (preset) {
-    return <AvatarPresetMark preset={preset.id} size={size} className={className} />;
+  if (avatarPreset) {
+    return <AvatarPresetMark preset={toAvatarPreset(avatarPreset)} size={size} className={className} />;
   }
 
   return (
@@ -121,5 +118,3 @@ export function UserAvatar({
     </span>
   );
 }
-
-export { icons as avatarIcons };

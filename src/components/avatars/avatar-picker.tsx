@@ -73,9 +73,17 @@ export function AvatarPicker({
     }
   };
 
+  const selectedPreset = avatarPresets.find((preset) => preset.id === value.preset) ?? avatarPresets[0];
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-8 gap-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-medium text-muted">Meme & cute</p>
+        <p className="text-[9px] text-muted/45">
+          {value.image ? "Custom photo" : selectedPreset.label} · {avatarPresets.length} faces
+        </p>
+      </div>
+      <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
         {avatarPresets.map((preset) => {
           const selected = !value.image && value.preset === preset.id;
           return (
@@ -85,6 +93,7 @@ export function AvatarPicker({
               disabled={disabled || reading}
               onClick={() => onChange({ preset: preset.id, image: null })}
               aria-label={preset.label}
+              title={preset.label}
               aria-pressed={selected}
               className={cn(
                 "relative grid place-items-center rounded-full transition disabled:opacity-50",

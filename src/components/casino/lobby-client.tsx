@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, Check, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, Sparkles, Trophy } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { gameCatalog } from "@/modules/games/catalog";
 import { useSession } from "@/components/session-provider";
@@ -47,8 +47,8 @@ export function LobbyClient() {
             <span className="block italic text-gold/90">at every table.</span>
           </h1>
           <p className="mt-5 max-w-lg text-[13px] leading-6 text-muted sm:text-sm">
-            Eleven original games, one committed seed. Dice, Plinko, Mines, Keno, Limbo, Wheel, HiLo, Dragon
-            Tower, Chicken Cross, Blackjack and Roulette — all play money, all verifiable.
+            Eleven original games, one clean floor. Dice, Plinko, Mines, Keno, Limbo, Wheel, HiLo, Dragon
+            Tower, Chicken Cross, Blackjack and Roulette — all play money, all instant.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
@@ -86,7 +86,7 @@ export function LobbyClient() {
             </div>
             <h2 className="mt-3 text-3xl text-ink">Eleven originals, dealt clean.</h2>
             <p className="mt-2 max-w-xl text-[11px] leading-5 text-muted/65">
-              Instant games and table classics, settled server-side against a committed seed.
+              Instant games and table classics, settled server-side with instant payouts.
             </p>
           </div>
           <span className="text-[10px] text-muted/45">{gameCatalog.length} games · 99%+ RTP</span>
@@ -140,8 +140,8 @@ export function LobbyClient() {
               <p className="mt-2 font-display text-xl text-ink">Instant</p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Fairness</p>
-              <p className="mt-2 font-display text-xl text-ink">HMAC-SHA256</p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">RTP</p>
+              <p className="mt-2 font-display text-xl text-ink">99.5%</p>
             </div>
           </div>
         </div>
@@ -225,24 +225,21 @@ export function LobbyClient() {
         </div>
 
         <div className="surface relative overflow-hidden p-6 sm:p-8">
-          <div className="absolute -right-16 -top-16 size-48 rounded-full bg-green/5 blur-3xl" />
-          <ShieldCheck className="size-5 text-green" />
-          <h2 className="mt-4 text-2xl text-ink">Every result, verifiable.</h2>
+          <div className="absolute -right-16 -top-16 size-48 rounded-full bg-gold/5 blur-3xl" />
+          <Sparkles className="size-5 text-gold" />
+          <h2 className="mt-4 text-2xl text-ink">Play money. Real rules.</h2>
           <p className="mt-3 text-[11px] leading-5 text-muted">
-            The server commits to a seed before you play. Rotate the pair and the previous server seed is revealed,
-            along with the exact input, nonce and outcome.
+            Fixed paytables, published odds and instant settlement. No deposits, no withdrawals and no bots on the
+            floor — just your seat and the table.
           </p>
-          <Link href="/fairness" className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-medium text-gold transition hover:text-gold-strong">
-            Inspect your seeds <ArrowRight className="size-3.5" />
-          </Link>
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-line/60 pt-5">
             <div>
-              <p className="font-display text-xl text-ink">SHA-256</p>
-              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Commitment</p>
+              <p className="font-display text-xl text-ink">99%+</p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">RTP on originals</p>
             </div>
             <div>
-              <p className="font-display text-xl text-ink">HMAC</p>
-              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Outcome source</p>
+              <p className="font-display text-xl text-ink">No bots</p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Real seats only</p>
             </div>
           </div>
         </div>

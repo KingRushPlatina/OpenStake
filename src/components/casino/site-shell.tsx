@@ -22,7 +22,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex flex-wrap items-center gap-5 text-[11px] text-muted/70">
                 <Link href="/#games" className="transition hover:text-ink">Originals</Link>
-                <Link href="/fairness" className="transition hover:text-ink">Provably fair</Link>
                 <Link href="/leaderboard" className="transition hover:text-ink">Leaderboard</Link>
                 <Link href="/wallet" className="transition hover:text-ink">Wallet</Link>
                 <span className="text-muted/40">© 2026 OpenStake</span>
