@@ -24,23 +24,6 @@ export function suitOf(card: string) {
   return card.slice(-1) as Suit;
 }
 
-export function baccaratValue(card: string) {
-  const rank = rankOf(card);
-  if (rank === "A") return 1;
-  if (rank === "T" || rank === "J" || rank === "Q" || rank === "K") return 0;
-  return Number(rank);
-}
-
-export function pokerValue(card: string) {
-  const rank = rankOf(card);
-  if (rank === "A") return 14;
-  if (rank === "T") return 10;
-  if (rank === "J") return 11;
-  if (rank === "Q") return 12;
-  if (rank === "K") return 13;
-  return Number(rank);
-}
-
 export function blackjackValue(cards: string[]) {
   let total = 0;
   let aces = 0;

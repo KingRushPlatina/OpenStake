@@ -1,239 +1,230 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import { ArrowRight, ShieldCheck, Sparkles, Trophy, Zap } from "lucide-react";
-import { gameCatalog, categories } from "@/modules/games/catalog";
-import { GameIcon } from "@/components/casino/game-icon";
-import { GameTile } from "@/components/casino/game-tile";
-import { LiveBets } from "@/components/casino/live-bets";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, ArrowUpRight, Check, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
 import { useSession } from "@/components/session-provider";
-import { cn } from "@/lib/client-utils";
-import { formatCents } from "@/lib/money";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { LiveBets } from "@/components/casino/live-bets";
+import { TablePreview } from "@/components/casino/table-preview";
+import { avatarTone, cn, initials } from "@/lib/client-utils";
+import { formatCents, formatMultiplier } from "@/lib/money";
+import type { LeaderboardResponse } from "@/types/api";
 
-const categoryLabels = categories;
+const rules = [
+  { label: "Blackjack", value: "Pays 3:2" },
+  { label: "Dealer", value: "Stands on soft 17" },
+  { label: "Doubles", value: "Any two cards" },
+  { label: "Splits", value: "Up to four hands" },
+  { label: "Insurance", value: "Pays 2:1" },
+  { label: "Shoe", value: "Six decks" },
+];
 
 export function LobbyClient() {
-  const params = useSearchParams();
   const { session } = useSession();
-  const category = params.get("category") ?? "all";
-  const search = (params.get("q") ?? "").toLowerCase().trim();
-
-  const games = useMemo(() => {
-    return gameCatalog.filter((game) => {
-      const categoryMatch = category === "all" || game.category === category;
-      const searchMatch =
-        !search ||
-        game.name.toLowerCase().includes(search) ||
-        game.tagline.toLowerCase().includes(search) ||
-        game.description.toLowerCase().includes(search);
-      return categoryMatch && searchMatch && (game.available || game.category === "slots");
-    });
-  }, [category, search]);
-
-  const featured = gameCatalog.filter((game) => game.available && ["dice", "crash", "plinko", "blackjack"].includes(game.id));
+  const leaderboard = useQuery({
+    queryKey: ["leaderboard", "profit", "preview"],
+    queryFn: () => apiFetch<LeaderboardResponse>("/api/leaderboard?metric=profit"),
+  });
+  const top = leaderboard.data?.rows.slice(0, 5) ?? [];
 
   return (
-    <div className="space-y-8">
-      <section className="hero-grid relative overflow-hidden rounded-2xl border border-line/60 bg-gradient-to-br from-[#183849] via-[#132b39] to-[#0f212e] px-6 py-7 sm:px-9 sm:py-9 lg:min-h-[280px]">
-        <div className="absolute -right-20 -top-28 size-80 rounded-full bg-green/10 blur-3xl" />
-        <div className="absolute bottom-0 right-[22%] size-40 rounded-full bg-blue/10 blur-3xl" />
-        <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-green/20 bg-green/[0.07] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-green">
-              <Sparkles className="size-3" />
-              Play money · provably fair
+    <div className="space-y-14">
+      <section className="grid items-center gap-10 pt-4 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14 lg:pt-8">
+        <div>
+          <div className="flex items-center gap-3">
+            <span className="h-px w-8 bg-gold/50" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.26em] text-gold/80">OpenStake Originals · Table 01</span>
+          </div>
+          <h1 className="mt-6 max-w-xl text-[42px] leading-[1.02] text-ink sm:text-[60px] lg:text-[64px]">
+            A better seat
+            <span className="block italic text-gold/90">at the table.</span>
+          </h1>
+          <p className="mt-5 max-w-lg text-[13px] leading-6 text-muted sm:text-sm">
+            One table, six decks and a dealer who stands on seventeen. Play blackjack with $100 in virtual credits,
+            then verify every hand against a committed server seed.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Button asChild size="lg">
+              <Link href="/casino/blackjack">
+                Take a seat <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link href="#rules">House rules</Link>
+            </Button>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] text-muted">
+            <span className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-green" /> {formatCents(session.wallet.balanceCents)} on the table
             </span>
-            <h1 className="mt-5 max-w-xl font-display text-[34px] font-bold leading-[1.03] tracking-[-0.045em] sm:text-[46px]">
-              The home of
-              <span className="block bg-gradient-to-r from-green via-[#7dffa7] to-[#4ea5ff] bg-clip-text text-transparent">
-                original casino games.
-              </span>
-            </h1>
-            <p className="mt-4 max-w-md text-sm leading-6 text-muted">
-              Every round is server-side, cryptographically verifiable and settled instantly. Start with $100 and climb
-              the leaderboard.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2.5">
-              <Link href="/casino/dice" className="btn btn-primary">
-                Play Dice <ArrowRight className="size-4" />
-              </Link>
-              <Link href="/?category=originals" className="btn btn-secondary">
-                Explore originals
-              </Link>
+            <span className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-gold" /> 99.5% RTP
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-muted/50" /> No real money
+            </span>
+          </div>
+        </div>
+        <TablePreview />
+      </section>
+
+      <section className="surface overflow-hidden">
+        <div className="grid lg:grid-cols-[1.35fr_1fr]">
+          <div className="border-b border-line/70 p-6 sm:p-8 lg:border-b-0 lg:border-r">
+            <div className="flex items-center gap-3">
+              <span className="grid size-11 place-items-center rounded-xl border border-gold/20 bg-gold/10 font-display text-xl text-gold">B</span>
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted/60">The table</p>
+                <h2 className="mt-0.5 text-2xl text-ink">Blackjack</h2>
+              </div>
             </div>
-            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-muted">
-              <span className="flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-green" /> 100% server-authoritative
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-blue" /> Seed verification
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-amber" /> No real money
-              </span>
+            <p className="mt-5 max-w-xl text-[12px] leading-6 text-muted">
+              A focused single-table blackjack room. Hit, stand, double, split and insure with server-side settlement
+              and a full hand history. The shoe is shuffled per round and every result is reproducible.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Badge tone="gold">Originals</Badge>
+              <Badge>3:2 payout</Badge>
+              <Badge>6-deck shoe</Badge>
+              <Badge>99.5% RTP</Badge>
+            </div>
+            <div className="mt-7">
+              <Button asChild>
+                <Link href="/casino/blackjack">
+                  Enter the table <ArrowRight className="size-4" />
+                </Link>
+              </Button>
             </div>
           </div>
-
-          <div className="relative hidden h-[230px] lg:block">
-            <div className="absolute right-4 top-0 rotate-6 rounded-2xl border border-line/70 bg-[#1a2c38]/95 p-3.5 shadow-2xl" style={{ animation: "float-soft 5s ease-in-out infinite" }}>
-              <GameIcon icon="crash" accent="orange" size="lg" />
-              <div className="mt-3 flex items-center justify-between gap-8">
-                <span className="text-[10px] font-semibold text-muted">Crash</span>
-                <span className="text-xs font-black text-green">24.18x</span>
-              </div>
+          <div className="grid grid-cols-2 divide-x divide-y divide-line/70 border-line/70 [&>*]:p-5 sm:[&>*]:p-6">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Limits</p>
+              <p className="mt-2 font-display text-xl text-ink">$0.10 — $500</p>
             </div>
-            <div className="absolute bottom-1 left-3 -rotate-6 rounded-2xl border border-line/70 bg-[#1a2c38]/95 p-3.5 shadow-2xl" style={{ animation: "float-soft 6s ease-in-out infinite 1s" }}>
-              <GameIcon icon="dice" accent="blue" size="lg" />
-              <div className="mt-3 flex items-center justify-between gap-8">
-                <span className="text-[10px] font-semibold text-muted">Dice</span>
-                <span className="text-xs font-black text-green">+$420.00</span>
-              </div>
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Max return</p>
+              <p className="mt-2 font-display text-xl text-ink">2.50x</p>
             </div>
-            <div className="absolute bottom-6 right-24 rounded-xl border border-green/20 bg-[#0c241a]/95 px-4 py-3 shadow-2xl" style={{ animation: "float-soft 4.5s ease-in-out infinite 0.5s" }}>
-              <p className="text-[9px] uppercase tracking-widest text-green/80">Next faucet</p>
-              <p className="mt-1 font-display text-lg font-bold text-white">+$100.00</p>
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Settlement</p>
+              <p className="mt-2 font-display text-xl text-ink">Instant</p>
             </div>
-            <div className="absolute left-28 top-3 size-2 rounded-full bg-green shadow-[0_0_18px_#00e701]" />
-            <div className="absolute right-2 bottom-20 size-1.5 rounded-full bg-blue shadow-[0_0_14px_#4ea5ff]" />
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Fairness</p>
+              <p className="mt-2 font-display text-xl text-ink">HMAC-SHA256</p>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_286px]">
-        <div className="min-w-0 space-y-7">
-          <section className="surface flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-green/10 text-green">
-                <Zap className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold">Welcome, {session.user.name}</p>
-                <p className="mt-0.5 text-[11px] text-muted">
-                  Balance {formatCents(session.wallet.balanceCents)} · net{" "}
-                  <span className={session.stats.netProfitCents >= 0 ? "text-green" : "text-red"}>
-                    {session.stats.netProfitCents >= 0 ? "+" : ""}
-                    {formatCents(session.stats.netProfitCents)}
+      <section className="grid items-start gap-5 lg:grid-cols-[1fr_1fr]">
+        <LiveBets limit={10} />
+        <div className="surface overflow-hidden">
+          <div className="flex items-center justify-between border-b border-line/70 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="size-3.5 text-gold" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Table leaders</p>
+            </div>
+            <Link href="/leaderboard" className="text-[10px] font-medium text-muted transition hover:text-ink">
+              Full board <ArrowUpRight className="inline size-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-line/40">
+            {top.length === 0 ? (
+              Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="flex h-[52px] animate-pulse items-center px-4">
+                  <div className="h-4 w-full rounded bg-white/[0.03]" />
+                </div>
+              ))
+            ) : (
+              top.map((row) => (
+                <div key={row.userId} className={cn("flex items-center gap-3 px-4 py-3", row.isCurrentUser && "bg-gold/[0.04]")}>
+                  <span className={cn("w-5 text-[11px] font-semibold tabular-nums", row.rank === 1 ? "text-gold" : "text-muted/60")}>
+                    {String(row.rank).padStart(2, "0")}
                   </span>
-                </p>
-              </div>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <Link href="/wallet" className="btn btn-secondary h-9 flex-1 px-3 text-xs sm:flex-none">
-                Wallet
-              </Link>
-              <Link href="/leaderboard" className="btn btn-secondary h-9 flex-1 px-3 text-xs sm:flex-none">
-                <Trophy className="size-3.5" /> Ranks
-              </Link>
-            </div>
-          </section>
-
-          {category === "all" && !search ? (
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="font-display text-lg font-bold tracking-tight">Featured originals</h2>
-                  <p className="mt-0.5 text-[11px] text-muted">Jump straight into the action</p>
+                  <span className={cn("grid size-7 place-items-center rounded-full border border-white/5 bg-gradient-to-br text-[8px] font-bold", avatarTone(row.userId))}>
+                    {initials(row.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-medium text-ink">{row.name}</p>
+                    <p className="text-[9px] text-muted/45">{row.totalBets} hands</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn("text-[11px] font-semibold tabular-nums", row.netProfitCents >= 0 ? "text-green" : "text-red")}>
+                      {row.netProfitCents >= 0 ? "+" : ""}
+                      {formatCents(row.netProfitCents, { compact: true })}
+                    </p>
+                    <p className="text-[9px] text-muted/45">{formatMultiplier(row.biggestMultiplier)} best</p>
+                  </div>
                 </div>
-                <Link href="/?category=originals" className="text-[11px] font-semibold text-muted hover:text-white">
-                  View all
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {featured.map((game) => (
-                  <Link
-                    key={game.id}
-                    href={`/casino/${game.id}`}
-                    className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-line/60 bg-gradient-to-r from-[#1a2c38] to-[#162833] p-3 transition hover:border-line hover:from-[#213743]"
-                  >
-                    <GameIcon icon={game.icon} accent={game.accent} size="md" />
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-bold">{game.name}</p>
-                      <p className="mt-0.5 truncate text-[10px] text-muted">{game.tagline}</p>
-                    </div>
-                    <ArrowRight className="ml-auto size-3.5 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-green" />
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
+              ))
+            )}
+          </div>
+        </div>
+      </section>
 
-          <section>
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="font-display text-lg font-bold tracking-tight">
-                  {search ? `Results for “${params.get("q")}”` : categoryLabels.find((item) => item.id === category)?.label ?? "All games"}
-                </h2>
-                <p className="mt-0.5 text-[11px] text-muted">{games.length} games available</p>
+      <section id="rules" className="scroll-mt-24 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+        <div className="surface p-6 sm:p-8">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-7 bg-gold/50" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80">House rules</p>
+          </div>
+          <h2 className="mt-4 text-3xl text-ink">The details that matter.</h2>
+          <div className="mt-7 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            {rules.map((rule) => (
+              <div key={rule.label} className="flex items-center justify-between border-b border-line/50 pb-3">
+                <span className="text-[11px] text-muted">{rule.label}</span>
+                <span className="text-[11px] font-medium text-ink">{rule.value}</span>
               </div>
-              <div className="flex flex-wrap gap-1 rounded-lg bg-[#0f212e] p-1">
-                {categoryLabels.map((item) => {
-                  const href = item.id === "all" ? "/" : `/?category=${item.id}`;
-                  return (
-                    <Link
-                      key={item.id}
-                      href={href}
-                      className={cn("tab h-8 px-3 text-[11px]", category === item.id && "tab-active")}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-              {games.map((game) => (
-                <GameTile key={game.id} game={game} />
-              ))}
-            </div>
-            {games.length === 0 ? (
-              <div className="surface flex h-48 flex-col items-center justify-center gap-2 text-center">
-                <p className="text-sm font-bold">No games found</p>
-                <p className="text-xs text-muted">Try another category or search term.</p>
-                <Link href="/" className="btn btn-secondary mt-2 h-9 px-4 text-xs">
-                  Reset filters
-                </Link>
-              </div>
-            ) : null}
-          </section>
-
-          <section className="grid gap-3 sm:grid-cols-3">
-            {[
-              { icon: ShieldCheck, title: "Provably fair", text: "Every result is verifiable with your seed pair." },
-              { icon: Zap, title: "Instant settlement", text: "Server-side wallet updates on every round." },
-              { icon: Trophy, title: "Climb the ranks", text: "Track profit, biggest wins and total wagered." },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.title} className="surface p-4">
-                  <Icon className="size-5 text-green" />
-                  <p className="mt-3 text-xs font-bold">{item.title}</p>
-                  <p className="mt-1 text-[10px] leading-5 text-muted">{item.text}</p>
-                </div>
-              );
-            })}
-          </section>
+            ))}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[10px] text-muted/60">
+            <span className="flex items-center gap-1.5"><Check className="size-3 text-green" /> Blackjack pays 3:2</span>
+            <span className="flex items-center gap-1.5"><Check className="size-3 text-green" /> Push returns the stake</span>
+            <span className="flex items-center gap-1.5"><Check className="size-3 text-green" /> Dealer peeks for blackjack</span>
+          </div>
         </div>
 
-        <div className="hidden xl:block">
-          <div className="sticky top-24 space-y-4">
-            <LiveBets limit={22} />
-            <div className="surface p-4">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="size-4 text-green" />
-                <p className="text-xs font-bold">Fairness, built in</p>
-              </div>
-              <p className="mt-2 text-[10px] leading-5 text-muted">
-                Your active server seed is hashed before play. Rotate it and reveal the previous seed at any time.
-              </p>
-              <Link href="/fairness" className="mt-3 flex items-center gap-1 text-[10px] font-bold text-green hover:text-[#7dffa7]">
-                Verify your seeds <ArrowRight className="size-3" />
-              </Link>
+        <div className="surface relative overflow-hidden p-6 sm:p-8">
+          <div className="absolute -right-16 -top-16 size-48 rounded-full bg-green/5 blur-3xl" />
+          <ShieldCheck className="size-5 text-green" />
+          <h2 className="mt-4 text-2xl text-ink">Every hand, verifiable.</h2>
+          <p className="mt-3 text-[11px] leading-5 text-muted">
+            The server commits to a seed before the deal. Rotate the pair and the previous server seed is revealed,
+            along with the exact cards, nonce and outcome.
+          </p>
+          <Link href="/fairness" className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-medium text-gold transition hover:text-gold-strong">
+            Inspect your seeds <ArrowRight className="size-3.5" />
+          </Link>
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-line/60 pt-5">
+            <div>
+              <p className="font-display text-xl text-ink">SHA-256</p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Commitment</p>
+            </div>
+            <div>
+              <p className="font-display text-xl text-ink">HMAC</p>
+              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted/50">Card source</p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section className="flex flex-col items-start justify-between gap-4 border-t border-line/70 pt-8 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <Sparkles className="size-4 text-gold" />
+          <p className="text-[11px] text-muted">
+            Your temporary seat is ready. No signup, no deposits, no real-money prizes.
+          </p>
+        </div>
+        <Button asChild variant="secondary" size="sm">
+          <Link href="/casino/blackjack">
+            Deal a hand <ArrowRight className="size-3.5" />
+          </Link>
+        </Button>
+      </section>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import {
   integer,
   jsonb,
   pgTable,
-  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -136,50 +135,4 @@ export const playerStats = pgTable(
     biggestMultiplier: doublePrecision("biggest_multiplier").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-);
-
-export const gameStates = pgTable(
-  "game_states",
-  {
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    gameId: text("game_id").notNull(),
-    state: jsonb("state").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [primaryKey({ columns: [table.userId, table.gameId] })],
-);
-
-export const crashRounds = pgTable("crash_rounds", {
-  id: text("id").primaryKey(),
-  roundNumber: integer("round_number").notNull(),
-  serverSeed: text("server_seed").notNull(),
-  serverSeedHash: text("server_seed_hash").notNull(),
-  crashPoint: doublePrecision("crash_point").notNull(),
-  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-  endedAt: timestamp("ended_at", { withTimezone: true }),
-});
-
-export const crashBets = pgTable(
-  "crash_bets",
-  {
-    id: text("id").primaryKey(),
-    roundId: text("round_id").notNull(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
-    autoCashout: doublePrecision("auto_cashout"),
-    cashoutMultiplier: doublePrecision("cashout_multiplier"),
-    payoutCents: bigint("payout_cents", { mode: "number" }).notNull().default(0),
-    status: text("status").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    settledAt: timestamp("settled_at", { withTimezone: true }),
-  },
-  (table) => [
-    index("crash_bets_round_idx").on(table.roundId),
-    index("crash_bets_user_idx").on(table.userId, table.createdAt),
-    uniqueIndex("crash_bets_one_per_round").on(table.userId, table.roundId).where(sql`${table.status} = 'active'`),
-  ],
 );

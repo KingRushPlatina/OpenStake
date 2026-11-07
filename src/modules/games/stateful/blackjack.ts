@@ -144,6 +144,7 @@ function settleRound(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Pr
       return { betCents: hand.betCents, payoutCents: 0, outcome: "lose" };
     }
     if (natural) return { betCents: hand.betCents, payoutCents: Math.floor(hand.betCents * 2.5), outcome: "blackjack" };
+    if (dealerValue.total > 21) return { betCents: hand.betCents, payoutCents: hand.betCents * 2, outcome: "win" };
     if (value.total > dealerValue.total) return { betCents: hand.betCents, payoutCents: hand.betCents * 2, outcome: "win" };
     if (value.total === dealerValue.total) return { betCents: hand.betCents, payoutCents: hand.betCents, outcome: "push" };
     return { betCents: hand.betCents, payoutCents: 0, outcome: "lose" };
@@ -161,7 +162,6 @@ function settleRound(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Pr
     publicState: publicState(secret, true),
     multiplier,
     status: "settled",
-    cashoutAllowed: false,
     settledResult: settled,
   };
 }
@@ -172,11 +172,11 @@ function advance(secret: BlackjackSecret, snapshot: ProgressionSnapshot): Progre
   if (!anyActive) return settleRound(secret, snapshot);
   if (next >= 0) {
     secret.activeHand = next;
-    return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active", cashoutAllowed: false };
+    return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active" };
   }
   const firstActive = secret.hands.findIndex((hand) => hand.status === "active");
   secret.activeHand = firstActive >= 0 ? firstActive : 0;
-  return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active", cashoutAllowed: false };
+  return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active" };
 }
 
 function prepareAfterInsurance(secret: BlackjackSecret, snapshot: ProgressionSnapshot): ProgressionSnapshot {
@@ -186,7 +186,7 @@ function prepareAfterInsurance(secret: BlackjackSecret, snapshot: ProgressionSna
   if (onlyHand && isNatural(onlyHand)) return settleRound(secret, snapshot);
   secret.phase = "player";
   secret.activeHand = 0;
-  return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active", cashoutAllowed: false };
+  return { ...snapshot, secret, publicState: publicState(secret), multiplier: 0, status: "active" };
 }
 
 export const blackjackGame: ProgressionEngine = {
@@ -224,7 +224,6 @@ export const blackjackGame: ProgressionEngine = {
       publicState: publicState(secret),
       multiplier: 0,
       status: "active",
-      cashoutAllowed: false,
     };
     if (dealerUpcardAce) {
       secret.phase = "insurance";
@@ -305,7 +304,6 @@ export const blackjackGame: ProgressionEngine = {
 
     throw new Error("That action is not available");
   },
-  cashout: (snapshot) => snapshot,
 };
 
 export type BlackjackPublicState = BlackjackPublic;

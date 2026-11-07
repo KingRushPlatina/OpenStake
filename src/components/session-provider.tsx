@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 import type { SessionPayload } from "@/types/api";
 
 type SessionContextValue = {
@@ -48,15 +49,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   if (query.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-5">
-          <div className="relative flex size-16 items-center justify-center rounded-2xl bg-green text-2xl font-black text-[#071a0a] shadow-[0_0_50px_rgba(0,231,1,0.25)]">
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative grid size-16 place-items-center rounded-2xl border border-gold/30 bg-surface font-display text-3xl text-gold">
             O
-            <span className="absolute inset-0 animate-ping rounded-2xl border border-green/40" />
+            <span className="absolute inset-0 animate-ping rounded-2xl border border-gold/20" />
           </div>
           <div className="text-center">
-            <p className="font-display text-lg font-bold tracking-tight">OpenStake</p>
-            <p className="mt-1 text-xs text-muted">Preparing your guest wallet…</p>
+            <p className="font-display text-xl text-ink">OpenStake</p>
+            <p className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-muted/50">Preparing your seat</p>
           </div>
         </div>
       </div>
@@ -66,12 +67,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   if (query.isError || !value) {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
-        <div className="surface max-w-md p-8 text-center">
-          <p className="font-display text-xl font-bold">Could not start a guest session</p>
-          <p className="mt-2 text-sm text-muted">Check the database connection and try again.</p>
-          <button type="button" className="btn btn-primary mt-6 w-full" onClick={() => query.refetch()}>
+        <div className="surface w-full max-w-md p-8 text-center">
+          <p className="font-display text-2xl text-ink">Could not open the table</p>
+          <p className="mt-2 text-[11px] leading-5 text-muted">Check the database connection and try again.</p>
+          <Button type="button" className="mt-6 w-full" onClick={() => query.refetch()}>
             Try again
-          </button>
+          </Button>
         </div>
       </div>
     );

@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getGameMetadata } from "@/modules/games/catalog";
+import { gameCatalog, getGameMetadata } from "@/modules/games/catalog";
 import { GameRouter } from "@/components/games/game-router";
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return gameCatalog.map((game) => ({ game: game.id }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ game: string }> }): Promise<Metadata> {
   const { game } = await params;

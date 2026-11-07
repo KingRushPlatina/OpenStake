@@ -16,8 +16,7 @@ export type LiveBetEvent = {
 
 export type RealtimeEvent =
   | LiveBetEvent
-  | { type: "heartbeat"; at: string }
-  | { type: "crash"; payload: Record<string, unknown> };
+  | { type: "heartbeat"; at: string };
 
 class EventBus {
   private subscribers = new Map<string, Set<Subscriber>>();

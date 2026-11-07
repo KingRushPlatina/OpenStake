@@ -81,10 +81,3 @@ export class FairRandom {
     return result;
   }
 }
-
-export function crashPointFromSeed(serverSeed: string, clientSeed: string, nonce: number) {
-  const random = new FairRandom(serverSeed, clientSeed, nonce);
-  const value = random.next();
-  if (value < 0.01) return 1;
-  return Math.max(1, Math.floor((0.99 / (1 - value)) * 100) / 100);
-}

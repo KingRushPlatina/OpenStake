@@ -1,39 +1,40 @@
 # OpenStake
 
-OpenStake is a server-authoritative social casino built with Next.js. It recreates the density, rhythm and visual language of a modern crypto casino while using only virtual credits. There are no deposits, withdrawals, real-money wagers or prizes.
+OpenStake is a server-authoritative, single-table blackjack room with the visual language of a private casino. It uses virtual credits only: there are no deposits, withdrawals, real-money wagers or prizes.
 
-## Games
+## The table
 
-| Family | Games |
-| --- | --- |
-| Originals | Dice, Limbo, Plinko, Mines, Keno, Wheel, HiLo, Dragon Tower, Chicken Cross |
-| Table | Blackjack, Roulette, Baccarat, Video Poker |
-| Realtime | Crash |
-| Slots | Neon Fruits, Golden Relic |
+- Six-deck blackjack with a 3:2 natural payout
+- Dealer stands on soft 17
+- Hit, stand, double, split and insurance
+- Up to four hands after splitting
+- Server-side settlement with a ledger-backed wallet
+- Live at-the-table feed, leaderboard and session history
 
-Every game is settled on the server. The client sends intents and renders public state; it never generates an outcome or mutates a balance.
+The client sends intents and renders public state. It never generates a card, changes a shoe or mutates a balance.
 
-## Core features
+## Platform
 
-- Automatic temporary guest accounts, no sign-up or password
+- Automatic temporary guest seats with no signup or password
 - $100 starting balance and a $100 faucet refill every 30 minutes while below target
-- Ledger-backed wallet with idempotent bets and transactional row locks
-- Provably fair seed pairs with SHA-256 commitments, HMAC-SHA256 randomness and seed reveal
-- Live bets feed, shared Crash rounds and leaderboard via SSE
-- Leaderboards by net profit, biggest win and total wagered
-- Demo liquidity bots for live feeds, Crash lobbies and leaderboard depth, configurable by env
-- Full-stack type safety with TypeScript, Zod and Drizzle
-- Responsive dark UI with original OpenStake branding and assets
+- Ledger wallet with idempotent hands, transactional row locks and refunds
+- Provably fair seed pairs with SHA-256 commitments, HMAC-SHA256 card draws and seed reveal
+- Per-hand verification data, recent bets and previous seed pairs
+- Leaderboard by net profit, biggest win and total wagered
+- Demo liquidity bots for the live feed and leaderboard depth, configurable by environment
+- Responsive dark interface with original OpenStake art direction
 - No source comments: naming, types, tests and structure carry the intent
 
 ## Stack
 
 - Next.js 16 App Router, React 19, TypeScript
-- Tailwind CSS 4, Motion, Lucide
+- Tailwind CSS 4 with a token-driven design system
+- Radix UI primitives, class-variance-authority and Sonner for accessible interface components
+- Motion and Lucide for movement and iconography
 - TanStack Query
 - PostgreSQL-compatible PGlite for a zero-setup local database
 - Drizzle ORM and SQL migrations
-- Vitest for engine and probability tests
+- Vitest for engine and rules tests
 
 ## Getting started
 
@@ -52,7 +53,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 Use the first for `SESSION_SECRET` and the second for `SEED_ENCRYPTION_KEY`.
 
-Open `http://localhost:3000`. The PGlite database is created automatically in `.data/pglite` and migrations are applied on first access.
+Open `http://localhost:3000`. The PGlite database is created in `.data/pglite` and migrations are applied on first access.
 
 ## Commands
 
@@ -72,15 +73,17 @@ npm run db:migrate
 ```text
 src/
   app/                 routes and route handlers
-  components/          UI, game stages, casino shell
+  components/
+    casino/            shell, lobby, live feed and table preview
+    games/blackjack/   table, seat panel, rules and session log
+    ui/                Radix-based primitives and design-system components
   modules/
-    games/             pure engines, paytables, catalog and game contracts
-    betting/           bet orchestration and wallet settlement
+    games/             catalog, cards, blackjack engine and contracts
+    betting/           hand orchestration and wallet settlement
     wallet/            ledger, faucet and money primitives
     fairness/          seed pair lifecycle
-    identity/          temporary accounts and demo personas
+    identity/          temporary seats and demo personas
     leaderboard/       ranking and transaction history
-    crash/             authoritative shared crash engine
     realtime/          event bus and demo liquidity
   platform/
     auth/              signed guest sessions
@@ -91,34 +94,26 @@ src/
 
 ### Patterns
 
-- **Factory**: `GameRegistry`-style maps in `modules/games` build instant and progression game definitions from a single catalog.
-- **Strategy**: every stateful game implements the `ProgressionEngine` contract; shared betting flows orchestrate them without game-specific branches.
-- **Dependency injection**: `platform/container.ts` wires services; engines receive a `RandomSource`, wallets use a `Clock` and `IdGenerator`, and tests inject deterministic implementations.
-- **Repository/unit of work**: all wallet mutations run through Drizzle transactions with `FOR UPDATE` locks and ledger entries.
-- **State machines**: Blackjack, Mines, Crash and the other stateful games expose explicit legal actions and settle atomically.
-- **Observer**: the realtime event bus drives the SSE live-bets and Crash streams without coupling engines to HTTP.
-
-### Adding a game
-
-1. Add metadata to `src/modules/games/catalog.ts`.
-2. Implement an instant definition or a `ProgressionEngine` in its own module.
-3. Register it in the relevant game index.
-4. Add the UI stage and map it in `src/components/games/game-router.tsx`.
-5. Add probability or rule tests.
+- **Strategy**: the blackjack engine implements the `ProgressionEngine` contract, so the shared betting flow orchestrates start, action and settlement without game-specific branches.
+- **Dependency injection**: `platform/container.ts` wires services; the engine receives a `RandomSource`, wallets use a `Clock` and `IdGenerator`, and tests inject scripted shoes.
+- **Repository and unit of work**: every wallet mutation runs through Drizzle transactions with `FOR UPDATE` locks and ledger entries.
+- **State machine**: blackjack exposes explicit legal actions, phases and settlement snapshots.
+- **Observer**: the realtime event bus drives the SSE live feed without coupling the engine to HTTP.
+- **Design system**: Radix primitives and CVA variants keep interaction and appearance consistent across the shell, table and account pages.
 
 ## Fairness
 
-Each guest receives a server seed, its SHA-256 hash and an editable client seed. Every bet stores the seed pair, client seed snapshot, nonce and game input. Outcomes come from HMAC-SHA256 floats:
+Each guest receives a server seed, its SHA-256 hash and an editable client seed. Every hand stores the seed pair, client seed snapshot, nonce and game input. The shoe is shuffled with HMAC-SHA256 floats:
 
 ```text
 HMAC-SHA256(serverSeed, clientSeed:nonce:cursor)
 ```
 
-Rotating a seed pair reveals the previous server seed on the fairness page. The fairness page can also display the verification data for recent bets. Crash uses a per-round committed server seed, revealed after the round.
+Rotating a seed pair reveals the previous server seed on the fairness page. The same page lists recent hands and returns the full verification payload once the seed is revealed.
 
 ## Demo liquidity
 
-Set `DEMO_LIQUIDITY=false` to disable simulated players in the live feed, Crash lobby and leaderboard. Demo personas never touch real guest wallets and are flagged internally as bots.
+Set `DEMO_LIQUIDITY=false` to disable simulated players in the live feed and leaderboard. Demo personas are flagged internally as bots and never touch guest wallets.
 
 ## Database note
 
@@ -126,4 +121,4 @@ PGlite keeps the project self-contained and runs the PostgreSQL dialect locally.
 
 ## Scope
 
-Sportsbook, live-dealer video, licensed third-party slots, real payments, KYC, chat, tips and admin tooling are intentionally out of scope. This project is a play-money product and a full-stack engineering showcase.
+Sportsbook, live-dealer video, additional originals, slots, roulette, baccarat, crash and third-party licensed content are intentionally out of scope. This is a play-money product and a full-stack engineering showcase.

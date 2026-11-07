@@ -3,7 +3,6 @@ import { getDatabase, type Database } from "@/platform/db/client";
 import { bets, seedPairs, users, wallets } from "@/platform/db/schema";
 import { decryptSecret, FairRandom } from "@/lib/fairness";
 import { AppError } from "@/lib/errors";
-import { instantGameById } from "@/modules/games/instant";
 import { progressionGameById } from "@/modules/games/stateful";
 import type { GameMetadata, PublicBet } from "@/modules/games/types";
 import type { ProgressionSnapshot } from "@/modules/games/stateful/types";
@@ -69,88 +68,6 @@ export class BettingService {
     private readonly ledger: LedgerService,
     private readonly seeds: SeedService,
   ) {}
-
-  async playInstant(userId: string, gameId: string, requestedAmount: number, input: unknown, idempotencyKey: string) {
-    validateIdempotencyKey(idempotencyKey);
-    const game = instantGameById.get(gameId as never);
-    if (!game) throw new AppError("GAME_NOT_FOUND", "Game not available", 404);
-    const parsedInput = game.inputSchema.parse(input);
-    const amountCents = game.resolveAmount ? game.resolveAmount(parsedInput) : requestedAmount;
-    validateAmount(game.metadata, amountCents);
-
-    const existing = await this.findByIdempotencyKey(userId, idempotencyKey);
-    if (existing) return this.hydrate(existing);
-
-    const database = await getDatabase();
-    try {
-      const result = await database.transaction(async (transaction) => {
-        const tx = transaction as unknown as Database;
-        const wallet = await this.ledger.lockWallet(tx, userId);
-        if (wallet.balanceCents < amountCents) {
-          throw new AppError("INSUFFICIENT_FUNDS", "Your balance is too low for this bet", 400);
-        }
-        const seed = await this.consumeSeed(tx, userId);
-        const outcome = game.play(parsedInput, seed.random);
-        const multiplier = cappedMultiplier(game.metadata, outcome.multiplier);
-        const payoutCents = payoutFor(amountCents, multiplier);
-        const now = this.clock.now();
-        const betId = this.ids.create("bet");
-        await this.ledger.recordPlacement(tx, userId, amountCents);
-        const balanceAfterDebit = await this.ledger.move(tx, {
-          userId,
-          amountCents: -amountCents,
-          type: "bet",
-          betId,
-          metadata: { gameId },
-        });
-        if (balanceAfterDebit < 0) throw new AppError("INSUFFICIENT_FUNDS", "Your balance is too low for this bet", 400);
-        let balance = balanceAfterDebit;
-        if (payoutCents > 0) {
-          balance = await this.ledger.move(tx, {
-            userId,
-            amountCents: payoutCents,
-            type: "payout",
-            betId,
-            metadata: { gameId, multiplier },
-          });
-          await this.ledger.recordSettlement(tx, userId, payoutCents, multiplier);
-        } else {
-          await this.ledger.recordSettlement(tx, userId, 0, multiplier);
-        }
-        const [inserted] = await tx
-          .insert(bets)
-          .values({
-            id: betId,
-            userId,
-            gameId,
-            amountCents,
-            payoutCents,
-            multiplier,
-            status: "settled",
-            idempotencyKey,
-            seedPairId: seed.id,
-            clientSeedSnapshot: seed.clientSeed,
-            nonce: seed.nonce,
-            gameInput: parsedInput,
-            result: outcome.result,
-            version: 1,
-            createdAt: now,
-            settledAt: now,
-          })
-          .returning();
-        const [user] = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
-        return { bet: inserted, balance, userName: user?.name ?? "Player" };
-      });
-
-      this.publish(result.bet, result.userName, game.metadata);
-      return this.hydrate(result.bet, result.balance);
-    } catch (error) {
-      const duplicate = await this.findByIdempotencyKey(userId, idempotencyKey);
-      if (duplicate) return this.hydrate(duplicate);
-      if (error instanceof AppError) throw error;
-      throw error;
-    }
-  }
 
   async startProgression(userId: string, gameId: string, amountCents: number, input: unknown, idempotencyKey: string) {
     validateIdempotencyKey(idempotencyKey);
@@ -265,7 +182,6 @@ export class BettingService {
         publicState: (row.result ?? {}) as Record<string, unknown>,
         multiplier: row.multiplier,
         status: "active",
-        cashoutAllowed: Boolean((row.result as { cashoutAllowed?: boolean } | null)?.cashoutAllowed),
       };
       let next: ProgressionSnapshot;
       try {
@@ -329,10 +245,6 @@ export class BettingService {
 
     if (result.settledNow) this.publish(result.bet, result.userName ?? "Player", game.metadata);
     return this.hydrate(result.bet, result.balance);
-  }
-
-  async cashout(userId: string, betId: string, actionKey: string) {
-    return this.act(userId, betId, { type: "cashout" }, actionKey);
   }
 
   async getHistory(userId: string, gameId?: string, limit = 20) {

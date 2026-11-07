@@ -35,14 +35,3 @@ export function parseAmountToCents(value: string) {
   return Math.round(parsed * CENTS_IN_DOLLAR);
 }
 
-export function toCents(value: number) {
-  return Math.round(value * CENTS_IN_DOLLAR);
-}
-
-export function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-export function payoutFor(betCents: number, multiplier: number) {
-  return Math.floor(betCents * multiplier);
-}

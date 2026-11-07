@@ -3,24 +3,28 @@
 import Link from "next/link";
 import { Header } from "./header";
 import { MobileNav } from "./mobile-nav";
-import { Sidebar } from "./sidebar";
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       <Header />
-      <Sidebar />
-      <main className="min-h-screen pb-24 pt-16 lg:pb-10 lg:pl-[232px]">
-        <div className="mx-auto w-full max-w-[1640px] px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
+      <main className="min-h-screen pb-24 pt-[72px] md:pb-10">
+        <div className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {children}
-          <footer className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-line/60 py-6 text-center sm:flex-row sm:text-left">
-            <p className="max-w-xl text-[10px] leading-5 text-muted/55">
-              OpenStake is a play-money social casino. No deposits, withdrawals, real-money wagering or prizes. 18+ only.
-            </p>
-            <div className="flex items-center gap-4 text-[10px] font-semibold text-muted/65">
-              <Link href="/fairness" className="hover:text-white">Provably fair</Link>
-              <Link href="/leaderboard" className="hover:text-white">Leaderboard</Link>
-              <Link href="/wallet" className="hover:text-white">Wallet</Link>
+          <footer className="mt-16 border-t border-line/70 pt-6">
+            <div className="flex flex-col gap-4 pb-2 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-xl">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold/70">OpenStake Originals</p>
+                <p className="mt-2 text-[11px] leading-5 text-muted/70">
+                  A play-money blackjack table. No deposits, withdrawals, real-money wagering or prizes. 18+ only.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-5 text-[11px] text-muted/70">
+                <Link href="/fairness" className="transition hover:text-ink">Provably fair</Link>
+                <Link href="/leaderboard" className="transition hover:text-ink">Leaderboard</Link>
+                <Link href="/wallet" className="transition hover:text-ink">Wallet</Link>
+                <span className="text-muted/40">© 2026 OpenStake</span>
+              </div>
             </div>
           </footer>
         </div>

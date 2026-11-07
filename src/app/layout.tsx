@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/inter";
-import "@fontsource-variable/space-grotesk";
+import "@fontsource-variable/fraunces";
 import "./globals.css";
 import { AppProviders } from "@/components/providers";
 import { SiteShell } from "@/components/casino/site-shell";
 
 export const metadata: Metadata = {
-  title: "OpenStake — Provably fair social casino",
-  description: "Play original casino games with virtual credits. No real money, just pure gameplay.",
+  title: "OpenStake — Blackjack, dealt properly",
+  description: "A private blackjack table with virtual credits, verifiable deals and no real-money wagering.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

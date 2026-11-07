@@ -1,57 +1,47 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { motion } from "motion/react";
-import { Hand, Sparkles, Spade } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Spade } from "lucide-react";
 import type { GameMetadata, PublicBet } from "@/modules/games/types";
+import type { BlackjackAction, BlackjackState } from "@/types/blackjack";
 import { apiFetch } from "@/lib/api-client";
-import { cn, newRequestKey } from "@/lib/client-utils";
-import { formatCents } from "@/lib/money";
+import { newRequestKey } from "@/lib/client-utils";
+import { formatCents, parseAmountToCents } from "@/lib/money";
 import { useSession } from "@/components/session-provider";
-import { GamePageLayout } from "@/components/games/game-page-layout";
-import { BetAmountControl, useBetAmount } from "@/components/games/bet-controls";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { LiveBets } from "@/components/casino/live-bets";
 import { useGameResult } from "@/components/games/use-game-result";
 import { useProgressionBet } from "@/components/games/use-progression-bet";
-import { PlayingCard } from "@/components/games/playing-card";
+import { BlackjackTable } from "./blackjack-table";
+import { RecentHands } from "./recent-hands";
+import { FairnessCard, RulesCard } from "./side-cards";
 
-type HandStatus = "active" | "stood" | "bust";
-type PublicHand = {
-  cards: string[];
-  total: number;
-  soft: boolean;
-  status: HandStatus;
-  betCents: number;
-  fromSplit: boolean;
-  doubled: boolean;
-  active: boolean;
-};
-type BlackjackPublic = {
-  phase: "insurance" | "player" | "settled";
-  dealerCards: string[];
-  dealerHidden: boolean;
-  dealerTotal: number | null;
-  hands: PublicHand[];
-  activeHand: number;
-  insuranceOffered: boolean;
-  insuranceBet: number;
-  totalStake: number;
-  availableActions: string[];
-  message: string;
-  dealerBlackjack?: boolean;
-  insurancePayout?: number;
-  payouts?: { betCents: number; payoutCents: number; outcome: string }[];
-  totalPayout?: number;
-};
+const chipOptions = [1, 5, 25, 100];
 
 export function BlackjackGame({ game }: { game: GameMetadata }) {
   const { session } = useSession();
-  const { amount, setAmount, amountCents, valid } = useBetAmount(game);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [amount, setAmount] = useState("1.00");
   const { activeBet, setActiveBet } = useProgressionBet(game.id);
-  const result = useGameResult(game.id);
-  const state = activeBet?.result as BlackjackPublic | undefined;
+  const result = useGameResult();
+  const state = activeBet?.result as BlackjackState | undefined;
   const isActive = activeBet?.status === "active";
   const settled = activeBet?.status === "settled";
+  const amountCents = parseAmountToCents(amount);
+  const valid = amountCents >= game.minBetCents && amountCents <= game.maxBetCents;
+  const balance = session.wallet.balanceCents;
   const activeHand = state?.hands[state.activeHand];
+  const totalStake = state?.totalStake ?? activeBet?.amountCents ?? amountCents;
+  const net = activeBet ? activeBet.payoutCents - activeBet.amountCents : 0;
+
+  const availableActions = (state?.availableActions ?? []).filter((action) => {
+    if (action === "double" || action === "split") return Boolean(activeHand) && balance >= (activeHand?.betCents ?? 0);
+    if (action === "take-insurance") return balance >= Math.floor(totalStake / 2);
+    return true;
+  });
 
   const start = useMutation({
     mutationFn: () =>
@@ -62,15 +52,18 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
     onSuccess: (bet) => {
       setActiveBet(bet);
       result.onResult(bet);
+      if (window.matchMedia("(max-width: 1279px)").matches) {
+        window.setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      }
     },
     onError: result.onError,
   });
 
   const act = useMutation({
-    mutationFn: (type: string) =>
+    mutationFn: (action: BlackjackAction) =>
       apiFetch<PublicBet>(`/api/games/blackjack/${activeBet?.id}/action`, {
         method: "POST",
-        body: JSON.stringify({ action: { type }, actionKey: newRequestKey() }),
+        body: JSON.stringify({ action: { type: action }, actionKey: newRequestKey() }),
       }),
     onSuccess: (bet) => {
       setActiveBet(bet);
@@ -80,180 +73,182 @@ export function BlackjackGame({ game }: { game: GameMetadata }) {
   });
 
   const busy = start.isPending || act.isPending;
-  const available = state?.availableActions ?? [];
-  const totalStake = state?.totalStake ?? activeBet?.amountCents ?? amountCents;
-  const balance = session.wallet.balanceCents;
-  const canDouble = available.includes("double") && activeHand && balance >= activeHand.betCents;
-  const canSplit = available.includes("split") && activeHand && balance >= activeHand.betCents;
-  const canTakeInsurance = available.includes("take-insurance") && balance >= Math.floor(totalStake / 2);
-  const net = activeBet ? activeBet.payoutCents - activeBet.amountCents : 0;
 
-  const dealerCards = state?.dealerCards ?? [];
-  const dealerHidden = state?.dealerHidden ?? true;
+  useEffect(() => {
+    if (!isActive || state?.phase !== "player" || busy) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+      const map: Record<string, BlackjackAction> = { h: "hit", s: "stand", d: "double", p: "split" };
+      const action = map[event.key.toLowerCase()];
+      if (action && availableActions.includes(action)) act.mutate(action);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [act, availableActions, busy, isActive, state?.phase]);
+
+  const setCents = (cents: number) => {
+    setAmount((Math.max(0, Math.min(game.maxBetCents, cents)) / 100).toFixed(2));
+  };
 
   return (
-    <GamePageLayout
-      game={game}
-      controls={
-        <section className="surface p-4">
-          <BetAmountControl game={game} balanceCents={balance} amount={amount} setAmount={setAmount} disabled={isActive || busy} />
-          <div className="my-4 h-px bg-line/60" />
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-[#0f212e] p-2.5">
-              <p className="text-[9px] uppercase tracking-wider text-muted/60">Total stake</p>
-              <p className="mt-1 font-display text-lg font-bold text-green">{formatCents(totalStake)}</p>
-            </div>
-            <div className="rounded-lg bg-[#0f212e] p-2.5">
-              <p className="text-[9px] uppercase tracking-wider text-muted/60">Hand bet</p>
-              <p className="mt-1 font-display text-lg font-bold text-white">{formatCents(activeHand?.betCents ?? amountCents)}</p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="grid size-8 place-items-center rounded-full border border-line text-muted transition hover:border-line-strong hover:text-ink" aria-label="Back to lobby">
+              <ArrowLeft className="size-3.5" />
+            </Link>
+            <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-muted/55">
+              <Spade className="size-3 text-gold" />
+              OpenStake Originals · Table 01
             </div>
           </div>
-          <button type="button" className="btn btn-primary mt-4 w-full" disabled={!valid || isActive || busy} onClick={() => start.mutate()}>
-            {busy ? "Dealing…" : settled ? "New hand" : "Deal cards"}
-          </button>
-          <div className="mt-4 rounded-lg border border-line/50 bg-[#0f212e]/60 p-3">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted/55">Rules</p>
-            <div className="mt-2 space-y-1 text-[10px] text-muted">
-              <p className="flex justify-between"><span>Blackjack</span><span className="text-white">3:2</span></p>
-              <p className="flex justify-between"><span>Dealer</span><span className="text-white">Stands on 17</span></p>
-              <p className="flex justify-between"><span>Insurance</span><span className="text-white">2:1</span></p>
-              <p className="flex justify-between"><span>Splits</span><span className="text-white">Up to 4 hands</span></p>
-            </div>
-          </div>
-          {settled ? (
-            <p className={cn("mt-4 text-center text-[11px] font-bold", net > 0 ? "text-green" : net === 0 ? "text-muted" : "text-red/80")}>
-              {net > 0 ? `You won ${formatCents(net)}` : net === 0 ? "Push — stake returned" : `You lost ${formatCents(Math.abs(net))}`}
-            </p>
-          ) : null}
-        </section>
-      }
-      stage={
-        <section className="surface relative min-h-[550px] overflow-hidden p-4 sm:p-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(24,90,58,0.18),transparent_55%)]" />
-          <div className="relative flex min-h-[500px] flex-col">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                <Spade className="size-3.5 text-green" /> Blackjack
-              </div>
-              <div className={cn("rounded-full border px-2.5 py-1 text-[10px] font-bold", settled ? (net > 0 ? "border-green/30 bg-green/10 text-green" : "border-line/60 bg-[#0f212e] text-muted") : "border-green/30 bg-green/10 text-green")}>
-                {settled ? `Settled · ${formatCents(activeBet?.payoutCents ?? 0)}` : !isActive ? "Ready to deal" : state?.phase === "insurance" ? "Insurance?" : "Your move"}
-              </div>
-            </div>
-
-            <div className="mt-7 flex flex-col items-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted/60">Dealer {state?.dealerTotal !== null && state?.dealerTotal !== undefined ? `· ${state.dealerTotal}` : ""}</p>
-              <div className="mt-3 flex min-h-[104px] items-center gap-1.5">
-                {dealerCards.length === 0 ? (
-                  <>
-                    <PlayingCard hidden size="md" />
-                    <PlayingCard hidden size="md" delay={0.1} />
-                  </>
-                ) : (
-                  <>
-                    {dealerCards.map((card, index) => (
-                      <PlayingCard key={`${card}-${index}`} card={card} size="md" delay={index * 0.08} />
-                    ))}
-                    {dealerHidden ? <PlayingCard hidden size="md" delay={dealerCards.length * 0.08} /> : null}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-1 flex-col justify-end">
-              <div className="flex flex-wrap items-end justify-center gap-3">
-                {(state?.hands ?? []).length === 0 ? (
-                  <div className="flex gap-1.5 opacity-40">
-                    <PlayingCard hidden size="md" />
-                    <PlayingCard hidden size="md" delay={0.1} />
-                  </div>
-                ) : (
-                  (state?.hands ?? []).map((hand, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={cn(
-                        "min-w-[150px] rounded-xl border p-2.5 transition",
-                        hand.active ? "border-green/40 bg-green/[0.04]" : "border-line/50 bg-[#0f212e]/55",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted">{index === 0 ? "Player" : `Hand ${index + 1}`}</p>
-                        <p className="font-display text-lg font-bold text-white">{hand.total}</p>
-                      </div>
-                      <div className="mt-2 flex items-center gap-1">
-                        {hand.cards.map((card, cardIndex) => (
-                          <PlayingCard key={`${card}-${cardIndex}`} card={card} size="sm" delay={cardIndex * 0.05} />
-                        ))}
-                      </div>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className={cn("text-[9px] font-semibold capitalize", hand.status === "bust" ? "text-red" : hand.status === "stood" ? "text-muted" : "text-green")}>
-                          {hand.status === "active" ? "In play" : hand.status}
-                        </span>
-                        <span className="text-[9px] font-bold text-muted">{formatCents(hand.betCents)}</span>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {state?.phase === "insurance" ? (
-              <div className="mx-auto mt-5 w-full max-w-[460px] rounded-xl border border-amber/30 bg-amber/[0.06] p-3">
-                <div className="flex items-center gap-2">
-                  <Hand className="size-4 text-amber" />
-                  <div>
-                    <p className="text-[11px] font-bold text-white">Dealer shows an Ace</p>
-                    <p className="text-[9px] text-muted">Insurance costs {formatCents(Math.floor(totalStake / 2))} and pays 2:1 if the dealer has blackjack.</p>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button type="button" disabled={!canTakeInsurance || busy} onClick={() => act.mutate("take-insurance")} className="btn btn-secondary h-9 text-[10px]">
-                    Take insurance
-                  </button>
-                  <button type="button" disabled={busy} onClick={() => act.mutate("decline-insurance")} className="btn btn-ghost h-9 text-[10px]">
-                    No insurance
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {isActive && state?.phase === "player" ? (
-              <div className="mx-auto mt-5 grid w-full max-w-[520px] grid-cols-2 gap-2 sm:grid-cols-4">
-                <button type="button" disabled={!available.includes("hit") || busy} onClick={() => act.mutate("hit")} className="btn btn-primary h-11 text-xs">Hit</button>
-                <button type="button" disabled={!available.includes("stand") || busy} onClick={() => act.mutate("stand")} className="btn btn-secondary h-11 text-xs">Stand</button>
-                <button type="button" disabled={!canDouble || busy} onClick={() => act.mutate("double")} className="btn btn-secondary h-11 text-xs">Double</button>
-                <button type="button" disabled={!canSplit || busy} onClick={() => act.mutate("split")} className="btn btn-secondary h-11 text-xs">Split</button>
-              </div>
-            ) : null}
-
-            {settled ? (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mt-5 w-full max-w-[520px] rounded-xl border border-line/50 bg-[#0f212e]/70 p-4 text-center">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-muted/60">Round result</p>
-                <p className={cn("mt-1 font-display text-2xl font-bold", net > 0 ? "text-green" : net === 0 ? "text-white" : "text-red/80")}>
-                  {state?.dealerBlackjack ? "Dealer blackjack" : net > 0 ? "You win" : net === 0 ? "Push" : "Dealer wins"}
-                </p>
-                <p className="mt-1 text-[11px] text-muted">
-                  Stake {formatCents(activeBet?.amountCents ?? 0)} · Payout {formatCents(activeBet?.payoutCents ?? 0)}
-                </p>
-              </motion.div>
-            ) : null}
-
-            <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-muted">
-              <Sparkles className="size-3 text-green" />
-              {isActive ? "Playing against the dealer. Stand on your best total." : settled ? "Start a new hand to play again." : "Deal a hand and beat the dealer to 21."}
-            </div>
-          </div>
-        </section>
-      }
-      mobileSide={
-        <div className="surface flex items-center gap-3 p-3">
-          <Spade className="size-4 text-green" />
-          <p className="text-[10px] text-muted">
-            <strong className="text-white">Blackjack:</strong> split matching cards, double your first two, and take insurance when the dealer shows an Ace.
-          </p>
+          <h1 className="mt-3 text-4xl text-ink sm:text-5xl">
+            Blackjack <span className="italic text-gold/80">No. 01</span>
+          </h1>
         </div>
-      }
-    />
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="gold">3:2 blackjack</Badge>
+          <Badge>Dealer stands on soft 17</Badge>
+          <Badge>99.5% RTP</Badge>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <aside className="order-first space-y-4 xl:order-2 xl:sticky xl:top-[96px] xl:self-start">
+          <section className="surface p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted/55">Your seat</p>
+                <p className="mt-1 text-[13px] font-medium text-ink">{session.user.name}</p>
+              </div>
+              <span className="rounded-full border border-green/20 bg-green/10 px-2.5 py-1 text-[9px] font-semibold text-green">Guest</span>
+            </div>
+
+            <div className="mt-5 border-t border-line/60 pt-5">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/55">Available</p>
+              <p className="mt-1 font-display text-[38px] leading-none text-ink">{formatCents(balance)}</p>
+              <p className="mt-1.5 text-[10px] text-muted/50">Virtual credits · no cash value</p>
+            </div>
+
+            <div className="mt-5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="stake" className="text-[10px] font-medium text-muted">Stake</label>
+                <span className="text-[9px] text-muted/45">${game.minBetCents / 100} — ${game.maxBetCents / 100}</span>
+              </div>
+              <div className="mt-2 flex h-12 items-center rounded-xl border border-line bg-[#0a0e0c] px-3 transition focus-within:border-gold/40">
+                <span className="text-sm text-muted">$</span>
+                <input
+                  id="stake"
+                  inputMode="decimal"
+                  value={amount}
+                  disabled={isActive || busy}
+                  onChange={(event) => {
+                    const next = event.target.value.replace(/[^0-9.]/g, "");
+                    if ((next.match(/\./g) ?? []).length <= 1) setAmount(next);
+                  }}
+                  onBlur={() => {
+                    const cents = parseAmountToCents(amount);
+                    if (cents < game.minBetCents) setCents(game.minBetCents);
+                    else if (cents > game.maxBetCents) setCents(game.maxBetCents);
+                  }}
+                  className="h-full min-w-0 flex-1 bg-transparent px-2 text-[15px] font-semibold text-ink outline-none disabled:opacity-55"
+                />
+                <button type="button" disabled={isActive || busy} onClick={() => setCents(balance)} className="text-[10px] font-semibold text-gold/80 transition hover:text-gold disabled:opacity-40">
+                  Max
+                </button>
+              </div>
+              <div className="mt-2 grid grid-cols-4 gap-1.5">
+                {chipOptions.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={isActive || busy}
+                    onClick={() => setCents(value * 100)}
+                    className="relative grid h-10 place-items-center rounded-full border border-line bg-surface-2 text-[10px] font-semibold text-muted transition hover:border-gold/30 hover:text-ink disabled:opacity-40"
+                  >
+                    <span className="absolute inset-[3px] rounded-full border border-dashed border-white/10" />
+                    ${value}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5">
+                {[
+                  { label: "½", value: Math.max(game.minBetCents, Math.floor(amountCents / 2)) },
+                  { label: "2×", value: Math.min(game.maxBetCents, amountCents * 2) },
+                  { label: "All in", value: Math.min(game.maxBetCents, balance) },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    disabled={isActive || busy}
+                    onClick={() => setCents(option.value)}
+                    className="h-8 rounded-lg border border-line/70 text-[9px] font-medium text-muted transition hover:border-line-strong hover:text-ink disabled:opacity-40"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between rounded-xl border border-line/60 bg-surface-2/60 px-3.5 py-3">
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Stake</p>
+                <p className="mt-1 text-[13px] font-semibold text-ink tabular-nums">{formatCents(isActive ? totalStake : amountCents)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] uppercase tracking-[0.16em] text-muted/50">Blackjack pays</p>
+                <p className="mt-1 text-[13px] font-semibold text-gold tabular-nums">{formatCents(Math.floor((isActive ? totalStake : amountCents) * 2.5))}</p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              size="lg"
+              className="mt-4 w-full"
+              disabled={isActive || busy || !valid}
+              onClick={() => start.mutate()}
+            >
+              {start.isPending ? "Dealing…" : act.isPending ? "Settling…" : isActive ? "Hand in play" : settled ? "Deal again" : "Deal cards"}
+            </Button>
+            {!valid ? (
+              <p className="mt-2 text-[10px] text-red/80">Stake must be between {formatCents(game.minBetCents)} and {formatCents(game.maxBetCents)}.</p>
+            ) : null}
+          </section>
+
+          <div className="hidden space-y-4 xl:block">
+            <RulesCard />
+            <FairnessCard serverSeedHash={session.seed?.serverSeedHash} nonce={session.seed?.nonce} />
+          </div>
+        </aside>
+
+        <div className="order-2 min-w-0 space-y-5 xl:order-1">
+          <div ref={tableRef} className="scroll-mt-24">
+            <BlackjackTable
+              state={state}
+              activeBet={activeBet}
+              isActive={Boolean(isActive)}
+              settled={Boolean(settled)}
+              busy={busy}
+              amountCents={isActive ? totalStake : amountCents}
+              net={net}
+              availableActions={availableActions}
+              onAction={(action) => act.mutate(action)}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:hidden">
+            <RulesCard />
+            <FairnessCard serverSeedHash={session.seed?.serverSeedHash} nonce={session.seed?.nonce} />
+          </div>
+
+          <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]">
+            <RecentHands />
+            <LiveBets limit={8} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

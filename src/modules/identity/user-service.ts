@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { getDatabase } from "@/platform/db/client";
+import { env } from "@/platform/env";
 import { faucetClaims, ledgerEntries, playerStats, users, wallets } from "@/platform/db/schema";
 import { AppError } from "@/lib/errors";
 import type { Clock, IdGenerator } from "@/modules/wallet/constants";
@@ -62,16 +63,19 @@ function botName(index: number) {
 }
 
 function botStats(index: number) {
-  const wagered = 180_000 + ((index * 83_117) % 6_500_000);
-  const profit = 8_000 + ((index * 104_729) % 1_900_000);
-  const biggestWin = 4_000 + ((index * 44_221) % 900_000);
+  const totalBets = 120 + ((index * 37) % 1_900);
+  const averageBet = 100 + ((index * 211) % 4_900);
+  const wagered = totalBets * averageBet;
+  const edge = (((index * 13) % 9) - 4) / 100;
+  const profit = Math.round(wagered * edge);
+  const biggestWin = 5_000 + ((index * 44_221) % 120_000);
   return {
-    totalBets: 120 + ((index * 37) % 1_900),
+    totalBets,
     wageredCents: wagered,
     payoutCents: wagered + profit,
     netProfitCents: profit,
     biggestWinCents: biggestWin,
-    biggestMultiplier: Math.round((1.5 + ((index * 13) % 240) / 3) * 100) / 100,
+    biggestMultiplier: Math.round((2 + ((index * 13) % 50) / 100) * 100) / 100,
   };
 }
 
@@ -197,6 +201,7 @@ export class UserService {
   }
 
   async ensureDemoBots() {
+    if (!env.DEMO_LIQUIDITY) return;
     const database = await getDatabase();
     const [existing] = await database
       .select({ count: sql<number>`count(*)::int` })
