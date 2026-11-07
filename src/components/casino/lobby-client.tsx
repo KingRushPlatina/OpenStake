@@ -128,8 +128,8 @@ export function LobbyClient() {
           </div>
           <div className="grid grid-cols-2 divide-x divide-y divide-line/70 border-line/70 [&>*]:p-5 sm:[&>*]:p-6">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Limits</p>
-              <p className="mt-2 font-display text-xl text-ink">$0.10 — $500</p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Table minimum</p>
+              <p className="mt-2 font-display text-xl text-ink">$1 / box</p>
             </div>
             <div>
               <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted/60">Max return</p>

@@ -1,29 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Crown, Trophy } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { useSession } from "@/components/session-provider";
 import { UserAvatar } from "@/components/user-avatar";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/client-utils";
 import { formatCents, formatMultiplier } from "@/lib/money";
 import type { LeaderboardResponse, LeaderboardRow } from "@/types/api";
-
-const metrics = [
-  { value: "profit", label: "Net profit" },
-  { value: "biggest-win", label: "Biggest win" },
-  { value: "wagered", label: "Total wagered" },
-] as const;
-
-type Metric = (typeof metrics)[number]["value"];
-
-function metricValue(row: LeaderboardRow, metric: Metric) {
-  if (metric === "biggest-win") return formatCents(row.biggestWinCents);
-  if (metric === "wagered") return formatCents(row.wageredCents);
-  return formatCents(row.netProfitCents);
-}
 
 function Avatar({ row, size = "md" }: { row: LeaderboardRow; size?: "sm" | "md" | "lg" }) {
   return (
@@ -40,10 +24,9 @@ function Avatar({ row, size = "md" }: { row: LeaderboardRow; size?: "sm" | "md" 
 
 export function LeaderboardClient() {
   const { session } = useSession();
-  const [metric, setMetric] = useState<Metric>("profit");
   const query = useQuery({
-    queryKey: ["leaderboard", metric],
-    queryFn: () => apiFetch<LeaderboardResponse>(`/api/leaderboard?metric=${metric}`),
+    queryKey: ["leaderboard", "profit"],
+    queryFn: () => apiFetch<LeaderboardResponse>("/api/leaderboard?metric=profit"),
   });
   const rows = query.data?.rows ?? [];
   const top = rows.slice(0, 3);
@@ -82,18 +65,12 @@ export function LeaderboardClient() {
         </div>
       </section>
 
-      <Tabs value={metric} onValueChange={(value) => setMetric(value as Metric)}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList>
-            {metrics.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <span className="text-[10px] text-muted/50">{query.isLoading ? "Reading the board…" : `${rows.length} ranked seats`}</span>
-        </div>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="rounded-full border border-gold/25 bg-gold/[0.06] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-gold">
+          Ranked by net profit
+        </span>
+        <span className="text-[10px] text-muted/50">{query.isLoading ? "Reading the board…" : `${rows.length} ranked seats`}</span>
+      </div>
 
       {top.length === 3 ? (
         <section className="grid gap-4 md:grid-cols-3">
@@ -120,10 +97,11 @@ export function LeaderboardClient() {
                     <p className="mt-0.5 text-[9px] text-muted/50">{row.totalBets} rounds · {formatMultiplier(row.biggestMultiplier)} best</p>
                   </div>
                 </div>
-                <p className={cn("mt-5 font-display text-2xl tabular-nums", metric === "profit" && row.netProfitCents < 0 ? "text-red/80" : "text-ink")}>
-                  {metricValue(row, metric)}
+                <p className={cn("mt-5 font-display text-2xl tabular-nums", row.netProfitCents < 0 ? "text-red/80" : "text-green")}>
+                  {row.netProfitCents >= 0 ? "+" : ""}
+                  {formatCents(row.netProfitCents)}
                 </p>
-                <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted/45">{metrics.find((item) => item.value === metric)?.label}</p>
+                <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted/45">Net profit</p>
               </div>
             );
           })}
