@@ -418,6 +418,307 @@ button {
   background-size: 5px 5px;
 }
 
+.mines-blast {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.mines-blast-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 235%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle,
+      #fffdf0 0%,
+      #ffe28a 15%,
+      #ffb347 31%,
+      #ff6a1a 47%,
+      rgba(150, 35, 8, 0.42) 65%,
+      transparent 77%
+    );
+  filter: blur(1px);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%) scale(0.15);
+  animation: mines-glow 700ms cubic-bezier(0.16, 0.84, 0.3, 1) forwards;
+}
+
+@keyframes mines-glow {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.15);
+  }
+  9% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.62);
+  }
+  36% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.45);
+  }
+}
+
+.mines-blast-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 112%;
+  aspect-ratio: 1;
+  border: 2px solid rgba(255, 216, 150, 0.85);
+  border-radius: 999px;
+  box-shadow:
+    0 0 24px rgba(255, 160, 60, 0.5),
+    inset 0 0 18px rgba(255, 170, 70, 0.38);
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: mines-ring 540ms ease-out forwards;
+}
+
+.mines-blast-ring-late {
+  border-color: rgba(255, 122, 42, 0.55);
+  animation-delay: 110ms;
+}
+
+@keyframes mines-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  12% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.7);
+  }
+}
+
+.mines-debris {
+  position: absolute;
+  left: calc(50% - var(--size) / 2);
+  top: calc(50% - var(--size) / 2);
+  width: var(--size);
+  height: calc(var(--size) * 0.62);
+  border-radius: 1.5px;
+  background: linear-gradient(135deg, #6b4630 0%, #2a1c14 55%, #100c09 100%);
+  box-shadow: 0 0 5px rgba(255, 122, 40, 0.55);
+  opacity: 0;
+  animation: mines-debris-fly var(--duration) cubic-bezier(0.18, 0.64, 0.35, 1) forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes mines-debris-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.5);
+  }
+  8% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), calc(var(--dy) + 34px)) rotate(var(--spin)) scale(0.75);
+  }
+}
+
+.mines-spark {
+  position: absolute;
+  left: calc(50% - var(--size) / 2);
+  top: calc(50% - var(--size) / 2);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 999px;
+  background: var(--spark-color);
+  box-shadow:
+    0 0 6px var(--spark-color),
+    0 0 12px rgba(255, 150, 50, 0.65);
+  transform: translate(0, 0) scale(0.4);
+  animation: mines-spark-fly var(--duration) cubic-bezier(0.14, 0.72, 0.32, 1) forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes mines-spark-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  10% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), calc(var(--dy) + 28px)) scale(0.12);
+  }
+}
+
+.mines-smoke-puff {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--size);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(96, 86, 74, 0.72),
+    rgba(48, 42, 37, 0.52) 55%,
+    transparent 74%
+  );
+  filter: blur(2px);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: mines-smoke var(--duration) ease-out forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes mines-smoke {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  14% {
+    opacity: var(--puff-opacity);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--dx)),
+        calc(-50% + var(--dy))
+      )
+      scale(2.1);
+  }
+}
+
+.mines-tile-hit {
+  animation: mines-tile-hit 640ms cubic-bezier(0.3, 0.8, 0.4, 1) both;
+}
+
+@keyframes mines-tile-hit {
+  0% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1) rotate(0deg);
+  }
+  10% {
+    filter: brightness(2.6) saturate(1.5);
+    transform: scale(1.16) rotate(-1deg);
+  }
+  28% {
+    filter: brightness(1.5) saturate(1.2);
+    transform: scale(0.95) rotate(1.6deg);
+  }
+  46% {
+    filter: brightness(1.2) saturate(1.05);
+    transform: scale(1.04) rotate(-0.8deg);
+  }
+  68% {
+    transform: scale(0.985) rotate(0.35deg);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.mines-mine-burnt {
+  border-color: rgba(224, 108, 108, 0.55) !important;
+  background:
+    radial-gradient(
+      circle at 50% 52%,
+      rgba(8, 5, 4, 0.96) 0%,
+      rgba(92, 20, 10, 0.72) 52%,
+      rgba(20, 26, 22, 0.9) 100%
+    ) !important;
+  box-shadow:
+    inset 0 0 20px rgba(255, 90, 30, 0.22),
+    0 0 20px rgba(255, 80, 20, 0.12);
+}
+
+.mines-board-shake {
+  animation: mines-board-shake 480ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes mines-board-shake {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    transform: translate(-5px, 3px) rotate(-0.35deg);
+  }
+  22% {
+    transform: translate(6px, -4px) rotate(0.4deg);
+  }
+  36% {
+    transform: translate(-4px, -2px) rotate(-0.3deg);
+  }
+  52% {
+    transform: translate(4px, 3px) rotate(0.25deg);
+  }
+  70% {
+    transform: translate(-2px, 1px) rotate(-0.15deg);
+  }
+  86% {
+    transform: translate(1px, -1px) rotate(0.08deg);
+  }
+}
+
+.mines-stage-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border-radius: 18px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 200, 132, 0.28),
+    rgba(255, 80, 25, 0.14) 42%,
+    transparent 72%
+  );
+  animation: mines-stage-flash 520ms ease-out forwards;
+}
+
+@keyframes mines-stage-flash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.mines-mine-reveal {
+  animation: mines-mine-reveal 320ms ease-out both;
+}
+
+@keyframes mines-mine-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

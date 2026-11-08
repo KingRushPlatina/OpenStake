@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { Bomb, Gem } from "lucide-react";
 import type { GameMetadata, PublicBet } from "@/modules/games/types";
 import { apiFetch } from "@/lib/api-client";
 import { cn, newRequestKey } from "@/lib/client-utils";
+import { playExplosionSound, primeExplosionAudio } from "@/lib/explosion-audio";
+import { MineExplosion } from "@/components/games/mines/mine-explosion";
 import { formatCents, formatMultiplier } from "@/lib/money";
 import { useSession } from "@/components/session-provider";
 import { GameShell } from "@/components/games/game-shell";
@@ -40,12 +42,17 @@ export function MinesGame({ game }: { game: GameMetadata }) {
   const [mineCount, setMineCount] = useState(3);
   const { activeBet, setActiveBet } = useProgressionBet(game.id);
   const result = useGameResult(game.name);
+  const [blast, setBlast] = useState<{ tile: number; nonce: number; betId: string } | null>(null);
+  const [minesShownFor, setMinesShownFor] = useState<string | null>(null);
+  const pendingMine = useRef<string | null>(null);
+  const blastNonce = useRef(0);
   const state = activeBet?.result as MinesPublic | undefined;
   const isActive = activeBet?.status === "active";
   const settled = activeBet?.status === "settled";
   const revealSet = new Set(state?.revealed ?? []);
   const mineSet = new Set(state?.mineTiles ?? []);
-  const showMines = settled;
+  const activeBlast = blast && blast.betId === activeBet?.id ? blast : null;
+  const showMines = settled && (!state?.lost || minesShownFor === activeBet?.id);
 
   const start = useMutation({
     mutationFn: () =>
@@ -60,6 +67,24 @@ export function MinesGame({ game }: { game: GameMetadata }) {
     onError: result.onError,
   });
 
+  const triggerBlast = (bet: PublicBet) => {
+    const data = bet.result as MinesPublic | undefined;
+    if (bet.status !== "settled" || !data?.lost || pendingMine.current !== bet.id) return;
+    if (data.revealed.length === 0) return;
+    pendingMine.current = null;
+    blastNonce.current += 1;
+    setBlast({
+      tile: data.revealed[data.revealed.length - 1],
+      nonce: blastNonce.current,
+      betId: bet.id,
+    });
+    playExplosionSound();
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate([26, 38, 92]);
+    }
+    window.setTimeout(() => setMinesShownFor(bet.id), 660);
+  };
+
   const act = useMutation({
     mutationFn: (action: { type: "reveal"; tile: number } | { type: "cashout" }) =>
       apiFetch<PublicBet>(`/api/games/mines/${activeBet?.id}/action`, {
@@ -69,9 +94,20 @@ export function MinesGame({ game }: { game: GameMetadata }) {
     onSuccess: (bet) => {
       setActiveBet(bet);
       result.onResult(bet);
+      triggerBlast(bet);
     },
-    onError: result.onError,
+    onError: (error) => {
+      pendingMine.current = null;
+      result.onError(error);
+    },
   });
+
+  const reveal = (tile: number) => {
+    // Unlock audio during the click so the blast can play once the server answers.
+    primeExplosionAudio();
+    pendingMine.current = activeBet?.id ?? null;
+    act.mutate({ type: "reveal", tile });
+  };
 
   const multiplier = state?.multiplier ?? 1;
   const previewNext = Math.floor((0.99 * 25 / (25 - mineCount)) * 10_000) / 10_000;
@@ -166,44 +202,56 @@ export function MinesGame({ game }: { game: GameMetadata }) {
             </div>
           }
         >
-          <div className="mx-auto grid max-w-[520px] grid-cols-5 gap-2 sm:gap-3">
-            {Array.from({ length: 25 }, (_, index) => {
-              const revealed = revealSet.has(index);
-              const mine = mineSet.has(index);
-              const lose = settled && state?.lost && mine;
-              return (
-                <motion.button
-                  key={index}
-                  type="button"
-                  aria-label={`Reveal tile ${index + 1}`}
-                  whileHover={isActive && !revealed ? { scale: 1.03 } : undefined}
-                  whileTap={isActive && !revealed ? { scale: 0.97 } : undefined}
-                  disabled={!isActive || revealed || busy}
-                  onClick={() => act.mutate({ type: "reveal", tile: index })}
-                  className={cn(
-                    "relative grid aspect-square place-items-center overflow-hidden rounded-xl border text-2xl transition",
-                    revealed && mine
-                      ? "border-red/50 bg-red/15 text-red"
-                      : revealed
-                        ? "border-[#7fd0d8]/40 bg-[#7fd0d8]/10 text-[#9edee4]"
-                        : isActive
-                          ? "border-line/60 bg-bg/30 hover:border-[#7fd0d8]/40 hover:bg-surface-2"
-                          : "border-line/40 bg-bg/25",
-                    lose && "bg-red/20",
-                  )}
-                >
-                  {revealed && mine ? (
-                    <Bomb className="size-6 sm:size-7" />
-                  ) : revealed ? (
-                    <Gem className="size-6 sm:size-7" />
-                  ) : showMines && mine ? (
-                    <Bomb className="size-5 text-red/50" />
-                  ) : (
-                    <span className="size-1.5 rounded-full bg-ink/10" />
-                  )}
-                </motion.button>
-              );
-            })}
+          <div className="relative mx-auto max-w-[520px]">
+            {activeBlast ? <span key={`flash-${activeBlast.nonce}`} className="mines-stage-flash" /> : null}
+            <div
+              key={`board-${activeBlast?.nonce ?? "idle"}`}
+              className={cn("grid grid-cols-5 gap-2 sm:gap-3", activeBlast && "mines-board-shake")}
+            >
+              {Array.from({ length: 25 }, (_, index) => {
+                const revealed = revealSet.has(index);
+                const mine = mineSet.has(index);
+                const lose = settled && state?.lost && mine;
+                const hit = activeBlast?.tile === index;
+                return (
+                  <motion.button
+                    key={index}
+                    type="button"
+                    aria-label={`Reveal tile ${index + 1}`}
+                    whileHover={isActive && !revealed ? { scale: 1.03 } : undefined}
+                    whileTap={isActive && !revealed ? { scale: 0.97 } : undefined}
+                    disabled={!isActive || revealed || busy}
+                    onClick={() => reveal(index)}
+                    className={cn(
+                      "relative grid aspect-square place-items-center rounded-xl border text-2xl transition",
+                      hit ? "z-20 overflow-visible" : "overflow-hidden",
+                      revealed && mine
+                        ? hit
+                          ? "mines-mine-burnt text-red"
+                          : "border-red/50 bg-red/15 text-red"
+                        : revealed
+                          ? "border-[#7fd0d8]/40 bg-[#7fd0d8]/10 text-[#9edee4]"
+                          : isActive
+                            ? "border-line/60 bg-bg/30 hover:border-[#7fd0d8]/40 hover:bg-surface-2"
+                            : "border-line/40 bg-bg/25",
+                      lose && !hit && showMines && "bg-red/20",
+                      hit && "mines-tile-hit",
+                    )}
+                  >
+                    {hit && activeBlast ? <MineExplosion key={activeBlast.nonce} /> : null}
+                    {revealed && mine ? (
+                      <Bomb className={cn("size-6 sm:size-7", hit && "relative z-10")} />
+                    ) : revealed ? (
+                      <Gem className="size-6 sm:size-7" />
+                    ) : showMines && mine ? (
+                      <Bomb className="mines-mine-reveal size-5 text-red/50" />
+                    ) : (
+                      <span className="size-1.5 rounded-full bg-ink/10" />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
           </div>
           <div className="mx-auto mt-5 max-w-[520px]">
             <div className="flex items-center justify-between text-[9px] text-muted/55">
