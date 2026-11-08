@@ -719,6 +719,244 @@ button {
   }
 }
 
+.limbo-number {
+  text-shadow:
+    0 0 22px rgba(195, 169, 236, 0.28),
+    0 2px 18px rgba(0, 0, 0, 0.5);
+}
+
+.limbo-flight[data-phase="crashed"] .limbo-number {
+  text-shadow:
+    0 0 26px rgba(240, 96, 70, 0.4),
+    0 2px 18px rgba(0, 0, 0, 0.5);
+}
+
+.limbo-flight[data-phase="cashed"] .limbo-number {
+  text-shadow:
+    0 0 26px rgba(79, 211, 155, 0.35),
+    0 2px 18px rgba(0, 0, 0, 0.5);
+}
+
+.limbo-flight[data-phase="crashed"] .limbo-trail-core {
+  stroke: #f08a7d;
+}
+
+.limbo-flight[data-phase="crashed"] .limbo-trail-glow {
+  stroke: rgba(240, 96, 70, 0.65);
+  opacity: 0.5;
+}
+
+.limbo-flight[data-phase="cashed"] .limbo-trail-core {
+  stroke: #6fe3b3;
+}
+
+.limbo-flight[data-phase="crashed"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 98, 52, 0.22), transparent 62%);
+  animation: limbo-crash-wash 620ms ease-out forwards;
+}
+
+@keyframes limbo-crash-wash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.limbo-plane {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(var(--plane-tilt));
+  will-change: left, top, transform;
+  filter: drop-shadow(0 0 12px rgba(195, 169, 236, 0.55));
+}
+
+.limbo-plane-body {
+  display: block;
+  width: 48px;
+  height: 32px;
+  position: relative;
+  z-index: 2;
+}
+
+.limbo-plane-glow {
+  position: absolute;
+  inset: -22px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(195, 169, 236, 0.42), transparent 68%);
+  animation: limbo-plane-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes limbo-plane-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+.limbo-plane-idle {
+  animation: limbo-plane-hover 2.8s ease-in-out infinite;
+}
+
+@keyframes limbo-plane-hover {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--plane-tilt)) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(var(--plane-tilt)) translateY(-8px);
+  }
+}
+
+.limbo-plane-crash {
+  animation: limbo-plane-crash 950ms cubic-bezier(0.42, 0.05, 0.72, 0.42) forwards;
+}
+
+@keyframes limbo-plane-crash {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--plane-tilt));
+  }
+  16% {
+    opacity: 1;
+    transform: translate(-50%, -58%) rotate(calc(var(--plane-tilt) + 22deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + 30px), calc(-50% + 220px))
+      rotate(calc(var(--plane-tilt) + 190deg));
+  }
+}
+
+.limbo-plane-away {
+  animation: limbo-plane-away 900ms cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+
+@keyframes limbo-plane-away {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--plane-tilt));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + 130px), calc(-50% - 96px))
+      rotate(calc(var(--plane-tilt) - 16deg))
+      scale(0.65);
+  }
+}
+
+.limbo-crash-burst,
+.limbo-cash-burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.limbo-crash-core {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 130px;
+  height: 130px;
+  transform: translate(-50%, -50%) scale(0.25);
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    #fffbe8 0%,
+    #ffd166 24%,
+    #ff8c42 46%,
+    #ff4a1d 62%,
+    transparent 76%
+  );
+  animation: limbo-crash-core 640ms ease-out forwards;
+}
+
+@keyframes limbo-crash-core {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.25);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+
+.limbo-crash-ring,
+.limbo-cash-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 90px;
+  height: 90px;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 168, 96, 0.85);
+  box-shadow: 0 0 20px rgba(255, 120, 60, 0.45);
+  animation: limbo-crash-ring 760ms ease-out forwards;
+}
+
+.limbo-crash-ring-late {
+  border-color: rgba(240, 90, 60, 0.6);
+  animation-delay: 120ms;
+}
+
+@keyframes limbo-crash-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  14% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.6);
+  }
+}
+
+.limbo-cash-ring {
+  border-color: rgba(79, 211, 155, 0.85);
+  box-shadow: 0 0 22px rgba(79, 211, 155, 0.45);
+  animation-duration: 700ms;
+}
+
+.limbo-cashout::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  animation: limbo-cashout-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes limbo-cashout-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -182,7 +182,16 @@ export class BettingService {
       .from(bets)
       .where(and(eq(bets.userId, userId), eq(bets.gameId, gameId), eq(bets.status, "active")))
       .limit(1);
-    if (active) throw new AppError("GAME_STATE", "Finish your active round before starting another", 400);
+    if (active) {
+      // Crash rounds can expire while the tab is closed; settle them before blocking a new one.
+      if (!game.checkExpired) {
+        throw new AppError("GAME_STATE", "Finish your active round before starting another", 400);
+      }
+      const status = await this.getStatus(userId, active.id);
+      if (status.status === "active") {
+        throw new AppError("GAME_STATE", "Finish your active round before starting another", 400);
+      }
+    }
     try {
       const result = await database.transaction(async (transaction) => {
         const tx = transaction as unknown as Database;
@@ -191,7 +200,11 @@ export class BettingService {
           throw new AppError("INSUFFICIENT_FUNDS", "Your balance is too low for this bet", 400);
         }
         const seed = await this.consumeSeed(tx, userId);
-        const snapshot = game.start(parsedInput, { betCents: amountCents, random: seed.random });
+        const snapshot = game.start(parsedInput, {
+          betCents: amountCents,
+          random: seed.random,
+          nowMs: this.clock.now().getTime(),
+        });
         const settled = snapshot.status === "settled";
         const multiplier = cappedMultiplier(game.metadata, snapshot.multiplier);
         const payoutCents = settled
@@ -292,7 +305,7 @@ export class BettingService {
       };
       let next: ProgressionSnapshot;
       try {
-        next = game.act(snapshot, action);
+        next = game.act(snapshot, action, { nowMs: this.clock.now().getTime() });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Invalid action";
         throw new AppError("GAME_STATE", message, 400);
@@ -414,6 +427,84 @@ export class BettingService {
       .orderBy(desc(bets.createdAt))
       .limit(1);
     return row ? this.hydrate(row) : null;
+  }
+
+  /** Reads a round and lets time-based games settle themselves once they expire. */
+  async getStatus(userId: string, betId: string) {
+    const database = await getDatabase();
+    const now = this.clock.now();
+    const outcome = await database.transaction(async (transaction) => {
+      const tx = transaction as unknown as Database;
+      const [row] = await tx
+        .select()
+        .from(bets)
+        .where(and(eq(bets.id, betId), eq(bets.userId, userId)))
+        .for("update")
+        .limit(1);
+      if (!row) throw new AppError("NOT_FOUND", "Bet not found", 404);
+      const balance = await this.getBalance(tx, userId);
+      const idle = { row, balance, player: null as LivePlayer | null, settledNow: false, metadata: null as GameMetadata | null };
+      if (row.status !== "active") return idle;
+
+      const game = progressionGameById.get(row.gameId as never);
+      if (!game?.checkExpired) return idle;
+
+      const snapshot: ProgressionSnapshot = {
+        secret: row.secret,
+        publicState: (row.result ?? {}) as Record<string, unknown>,
+        multiplier: row.multiplier,
+        status: "active",
+      };
+      const expired = game.checkExpired(snapshot, { nowMs: now.getTime() });
+      if (!expired) return idle;
+
+      const multiplier = cappedMultiplier(game.metadata, expired.multiplier);
+      const payoutCents = progressionPayoutCents(
+        row.amountCents,
+        multiplier,
+        expired.payoutCents,
+        game.metadata.maxWinMultiplier,
+      );
+      let nextBalance = balance;
+      if (payoutCents > 0) {
+        nextBalance = await this.ledger.move(tx, {
+          userId,
+          amountCents: payoutCents,
+          type: "payout",
+          betId,
+          metadata: { gameId: row.gameId, multiplier },
+        });
+      }
+      await this.ledger.recordSettlement(tx, userId, payoutCents, multiplier);
+      const [updated] = await tx
+        .update(bets)
+        .set({
+          status: "settled",
+          payoutCents,
+          multiplier,
+          result: expired.settledResult,
+          secret: null,
+          version: row.version + 1,
+          settledAt: now,
+        })
+        .where(eq(bets.id, betId))
+        .returning();
+      const [player] = await tx
+        .select({
+          name: users.name,
+          avatarPreset: users.avatarPreset,
+          hasAvatar: sql<boolean>`${users.avatarImage} is not null`,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      return { row: updated, balance: nextBalance, player: player ?? null, settledNow: true, metadata: game.metadata };
+    });
+
+    if (outcome.settledNow && outcome.metadata) {
+      this.publish(outcome.row, outcome.player, outcome.metadata);
+    }
+    return this.hydrate(outcome.row, outcome.balance);
   }
 
   private async consumeSeed(database: Database, userId: string): Promise<SeedContext> {

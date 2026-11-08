@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: { params: Promise<{ game: 
     const userId = await requireUserId();
     const { game } = await context.params;
     const active = await getContainer().betting.getActiveBet(userId, game);
-    return NextResponse.json({ active });
+    return NextResponse.json({ active, serverNowMs: Date.now() });
   } catch (error) {
     return errorResponse(error);
   }

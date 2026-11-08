@@ -4,12 +4,13 @@ import { minesGame } from "@/modules/games/stateful/mines";
 import { hiloGame } from "@/modules/games/stateful/hilo";
 import { dragonTowerGame } from "@/modules/games/stateful/dragon-tower";
 import { chickenCrossGame } from "@/modules/games/stateful/chicken-cross";
+import { limboGame } from "@/modules/games/stateful/limbo";
 import { diceGame } from "@/modules/games/instant/dice";
-import { limboGame } from "@/modules/games/instant/limbo";
 import { plinkoGame } from "@/modules/games/instant/plinko";
 import { kenoGame } from "@/modules/games/instant/keno";
 import { getKenoPaytable } from "@/modules/games/paytables/keno";
 import { getWheelMultipliers, wheelGame } from "@/modules/games/instant/wheel";
+import { limboCrashDelayMs } from "@/lib/limbo";
 import { rouletteGame, resolveRouletteStake } from "@/modules/games/instant/roulette";
 import { ROULETTE_WHEEL, ROULETTE_SPOTS, rouletteColor } from "@/lib/roulette";
 import { blackjackValue, createDeck, rankOf, suitOf } from "@/modules/games/cards";
@@ -292,14 +293,6 @@ describe("instant originals", () => {
     expect(outcome.multiplier).toBeCloseTo(2);
   });
 
-  it("resolves limbo against the target", () => {
-    const win = limboGame.play({ target: 1.5 }, new StaticRandom(0.5));
-    expect(win.result).toMatchObject({ result: 1.98, target: 1.5, win: true });
-    expect(win.multiplier).toBe(1.5);
-    const loss = limboGame.play({ target: 5 }, new StaticRandom(0.5));
-    expect(loss.multiplier).toBe(0);
-  });
-
   it("drops a plinko ball into the matching bucket", () => {
     const outcome = plinkoGame.play({ rows: 8, risk: "low" }, new StaticRandom(0.1));
     expect(outcome.result).toMatchObject({ rows: 8, bucket: 0 });
@@ -503,6 +496,45 @@ describe("stateful originals", () => {
     expect(lost.status).toBe("settled");
     expect(lost.multiplier).toBe(0);
     expect((lost.settledResult as { lost: boolean }).lost).toBe(true);
+  });
+
+  it("flies limbo and cashes out below the crash point", () => {
+    const start = limboGame.start({}, { betCents: 100, random: new StaticRandom(0.5), nowMs: 1_000 });
+    expect(start.status).toBe("active");
+    expect((start.publicState as { crash?: number }).crash).toBeUndefined();
+    const cashed = limboGame.act(start, { type: "cashout" }, { nowMs: 5_000 });
+    expect(cashed.status).toBe("settled");
+    expect(cashed.multiplier).toBe(1.41);
+    expect((cashed.settledResult as { crash: number; lost: boolean }).crash).toBe(1.98);
+    expect((cashed.settledResult as { crash: number; lost: boolean }).lost).toBe(false);
+  });
+
+  it("crashes limbo when the cashout lands after the draw", () => {
+    const start = limboGame.start({}, { betCents: 100, random: new StaticRandom(0.5), nowMs: 1_000 });
+    const late = limboGame.act(start, { type: "cashout" }, { nowMs: 9_000 });
+    expect(late.status).toBe("settled");
+    expect(late.multiplier).toBe(0);
+    const result = late.settledResult as { crash: number; lost: boolean };
+    expect(result.crash).toBe(1.98);
+    expect(result.lost).toBe(true);
+  });
+
+  it("expires limbo rounds on the server clock", () => {
+    const start = limboGame.start({}, { betCents: 100, random: new StaticRandom(0.5), nowMs: 1_000 });
+    const crashAt = 1_000 + limboCrashDelayMs(1.98);
+    expect(limboGame.checkExpired?.(start, { nowMs: crashAt - 1 })).toBeNull();
+    const expired = limboGame.checkExpired?.(start, { nowMs: crashAt });
+    expect(expired?.status).toBe("settled");
+    expect(expired?.multiplier).toBe(0);
+    expect((expired?.settledResult as { lost: boolean }).lost).toBe(true);
+  });
+
+  it("crashes limbo instantly on a 1.00x draw", () => {
+    const start = limboGame.start({}, { betCents: 100, random: new StaticRandom(0.005), nowMs: 1_000 });
+    expect(start.status).toBe("settled");
+    expect(start.multiplier).toBe(0);
+    expect((start.settledResult as { crash: number; lost: boolean }).crash).toBe(1);
+    expect((start.settledResult as { crash: number; lost: boolean }).lost).toBe(true);
   });
 
   it("pays progression cashouts from the multiplier instead of the max win cap", () => {

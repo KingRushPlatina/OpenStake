@@ -35,7 +35,12 @@ export function GameShell({
           <GameMark icon={game.icon} accent={game.accent} size="lg" />
           <div className="min-w-0">
             <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-gold/70">
-              Originals · {game.id === "roulette" || game.kind === "stateful" ? "Table" : "Instant"}
+              Originals ·{" "}
+              {game.id === "limbo"
+                ? "Crash"
+                : game.id === "roulette" || game.kind === "stateful"
+                  ? "Table"
+                  : "Instant"}
             </p>
             <h1 className="mt-1 text-3xl text-ink sm:text-4xl">{game.name}</h1>
             <p className="mt-1 text-[11px] text-muted/65">{game.tagline}</p>

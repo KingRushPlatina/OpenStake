@@ -21,7 +21,7 @@ export async function POST(request: Request, context: { params: Promise<{ game: 
       body.input ?? {},
       String(body.idempotencyKey ?? ""),
     );
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, serverNowMs: Date.now() });
   } catch (error) {
     return errorResponse(error);
   }

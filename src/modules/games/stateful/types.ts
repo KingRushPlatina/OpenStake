@@ -14,6 +14,11 @@ export type ProgressionSnapshot = {
 export type ProgressionStartContext = {
   betCents: number;
   random: RandomSource;
+  nowMs?: number;
+};
+
+export type ProgressionActionContext = {
+  nowMs?: number;
 };
 
 export type ProgressionEngine = {
@@ -22,7 +27,9 @@ export type ProgressionEngine = {
   actionSchema: z.ZodType;
   resolveStake?: (input: unknown, requestedAmountCents: number) => number;
   start: (input: unknown, context: ProgressionStartContext) => ProgressionSnapshot;
-  act: (snapshot: ProgressionSnapshot, action: unknown) => ProgressionSnapshot;
+  act: (snapshot: ProgressionSnapshot, action: unknown, context?: ProgressionActionContext) => ProgressionSnapshot;
+  /** Time-based rounds (crash games) settle themselves once their window closes. */
+  checkExpired?: (snapshot: ProgressionSnapshot, context: { nowMs: number }) => ProgressionSnapshot | null;
 };
 
 
