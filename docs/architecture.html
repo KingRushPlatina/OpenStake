@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>OpenStake — architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; padding:36px 36px 26px; background:#020617; color:#e2e8f0;
+         font-family:"JetBrains Mono", ui-monospace, monospace; }
+  .head { display:flex; align-items:center; gap:12px; }
+  .dot { width:9px; height:9px; border-radius:999px; background:#34d399; box-shadow:0 0 0 4px rgba(52,211,153,.15); }
+  h1 { font-size:19px; font-weight:700; letter-spacing:.1em; margin:0; text-transform:uppercase; }
+  .sub { font-size:12px; color:#7c8ba1; margin:8px 0 20px 21px; letter-spacing:.04em; }
+  .frame { border:1px solid #1e293b; border-radius:14px; padding:8px;
+           background:radial-gradient(1100px 520px at 18% 0%, rgba(30,41,59,.55), #020617 72%); }
+  footer { margin-top:14px; font-size:11px; color:#475569; letter-spacing:.08em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <div class="head"><span class="dot"></span><h1>OpenStake · system architecture</h1></div>
+  <p class="sub">server-authoritative play money floor · next.js 16 · drizzle · pglite · hmac-sha256 fairness</p>
+  <div class="frame">
+    <svg viewBox="0 0 1460 720" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6"/>
+        </pattern>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+        </marker>
+        <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#22d3ee"/>
+        </marker>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#fb7185"/>
+        </marker>
+      </defs>
+      <rect width="1460" height="720" fill="url(#grid)" opacity="0.5"/>
+
+      <!-- main flow arrows -->
+      <line x1="272" y1="250" x2="300" y2="250" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+      <line x1="432" y1="250" x2="460" y2="250" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+      <line x1="792" y1="250" x2="820" y2="250" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+      <line x1="1122" y1="250" x2="1150" y2="250" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+
+      <!-- SSE return path: domain -> client -->
+      <path d="M 970 470 L 970 498 L 150 498 L 150 472" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="6,5" marker-end="url(#ac)"/>
+      <text x="300" y="490" fill="#22d3ee" font-size="11">GET /api/stream — live bets pushed over SSE</text>
+
+      <!-- seed service -> fairness -->
+      <line x1="970" y1="472" x2="970" y2="540" stroke="#fb7185" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+
+      <!-- column labels -->
+      <text x="30" y="58" fill="#64748b" font-size="10" letter-spacing="0.2em">CLIENT</text>
+      <text x="300" y="58" fill="#64748b" font-size="10" letter-spacing="0.2em">EDGE</text>
+      <text x="460" y="58" fill="#64748b" font-size="10" letter-spacing="0.2em">APPLICATION</text>
+      <text x="820" y="58" fill="#64748b" font-size="10" letter-spacing="0.2em">DOMAIN</text>
+      <text x="1150" y="58" fill="#64748b" font-size="10" letter-spacing="0.2em">DATA</text>
+
+      <!-- CLIENT -->
+      <g>
+        <rect x="30" y="70" width="242" height="402" rx="7" fill="#0f172a"/>
+        <rect x="30" y="70" width="242" height="402" rx="7" fill="rgba(8,51,68,0.42)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="50" y="100" fill="#22d3ee" font-size="14" font-weight="500">Browser</text>
+        <text x="50" y="120" fill="#94a3b8" font-size="10.5">React 19 client components</text>
+        <text x="50" y="152" fill="#e2e8f0" font-size="11.5">• 11 game shells</text>
+        <text x="50" y="174" fill="#e2e8f0" font-size="11.5">• lobby · wallet</text>
+        <text x="50" y="196" fill="#e2e8f0" font-size="11.5">• leaderboard</text>
+        <text x="50" y="218" fill="#e2e8f0" font-size="11.5">• TanStack Query cache</text>
+        <text x="50" y="240" fill="#e2e8f0" font-size="11.5">• Motion + Radix UI</text>
+        <line x1="50" y1="262" x2="252" y2="262" stroke="#1e293b" stroke-width="1"/>
+        <text x="50" y="286" fill="#94a3b8" font-size="10.5">state held</text>
+        <text x="50" y="306" fill="#cbd5e1" font-size="11">intents · public state</text>
+        <text x="50" y="326" fill="#cbd5e1" font-size="11">never an outcome</text>
+        <line x1="50" y1="348" x2="252" y2="348" stroke="#1e293b" stroke-width="1"/>
+        <text x="50" y="372" fill="#fb7185" font-size="11">signed guest cookie</text>
+        <text x="50" y="392" fill="#94a3b8" font-size="10">HMAC-SHA256 over user id</text>
+        <text x="50" y="424" fill="#64748b" font-size="10">No password, no email.</text>
+        <text x="50" y="442" fill="#64748b" font-size="10">The seat lives in a cookie.</text>
+      </g>
+
+      <!-- EDGE -->
+      <g>
+        <rect x="300" y="180" width="132" height="140" rx="7" fill="#0f172a"/>
+        <rect x="300" y="180" width="132" height="140" rx="7" fill="rgba(30,41,59,0.55)" stroke="#94a3b8" stroke-width="2"/>
+        <text x="318" y="216" fill="#e2e8f0" font-size="12">Cloudflare</text>
+        <text x="318" y="234" fill="#e2e8f0" font-size="12">Tunnel</text>
+        <text x="318" y="266" fill="#94a3b8" font-size="10">https</text>
+        <text x="318" y="284" fill="#94a3b8" font-size="10">edge TLS</text>
+        <text x="318" y="302" fill="#94a3b8" font-size="10">no auth</text>
+      </g>
+
+      <!-- APPLICATION -->
+      <g>
+        <rect x="460" y="70" width="332" height="402" rx="7" fill="#0f172a"/>
+        <rect x="460" y="70" width="332" height="402" rx="7" fill="rgba(6,78,59,0.42)" stroke="#34d399" stroke-width="2"/>
+        <text x="482" y="100" fill="#34d399" font-size="14" font-weight="500">Next.js 16 · App Router</text>
+        <text x="482" y="120" fill="#94a3b8" font-size="10.5">server components + route handlers</text>
+        <text x="482" y="150" fill="#cbd5e1" font-size="11">POST /api/session</text>
+        <text x="482" y="170" fill="#cbd5e1" font-size="11">POST /api/games/:game/start</text>
+        <text x="482" y="190" fill="#cbd5e1" font-size="11">POST /api/games/:game/play</text>
+        <text x="482" y="210" fill="#cbd5e1" font-size="11">POST /api/games/:game/:id/action</text>
+        <text x="482" y="230" fill="#cbd5e1" font-size="11">GET  /api/games/:game/:id/status</text>
+        <text x="482" y="250" fill="#cbd5e1" font-size="11">POST /api/faucet</text>
+        <text x="482" y="270" fill="#cbd5e1" font-size="11">GET  /api/me · /history</text>
+        <text x="482" y="290" fill="#cbd5e1" font-size="11">GET  /api/leaderboard · /feed</text>
+        <text x="482" y="310" fill="#cbd5e1" font-size="11">GET  /api/stream (SSE)</text>
+        <line x1="482" y1="332" x2="770" y2="332" stroke="#1e293b" stroke-width="1"/>
+        <text x="482" y="354" fill="#94a3b8" font-size="10.5">validation</text>
+        <text x="482" y="372" fill="#cbd5e1" font-size="11">zod schemas per game</text>
+        <text x="482" y="396" fill="#94a3b8" font-size="10.5">composition root</text>
+        <text x="482" y="414" fill="#cbd5e1" font-size="11">platform/container.ts (DI)</text>
+        <text x="482" y="442" fill="#64748b" font-size="10">no client-generated outcomes</text>
+      </g>
+
+      <!-- DOMAIN -->
+      <g>
+        <rect x="820" y="70" width="302" height="402" rx="7" fill="#0f172a"/>
+        <rect x="820" y="70" width="302" height="402" rx="7" fill="rgba(6,78,59,0.42)" stroke="#34d399" stroke-width="2"/>
+        <text x="842" y="100" fill="#34d399" font-size="14" font-weight="500">Domain modules</text>
+        <text x="842" y="128" fill="#e2e8f0" font-size="12">BettingService</text>
+        <text x="842" y="146" fill="#94a3b8" font-size="10.5">instant + progression orchestration</text>
+        <text x="842" y="174" fill="#e2e8f0" font-size="12">5 instant engines</text>
+        <text x="842" y="192" fill="#94a3b8" font-size="10.5">dice · plinko · keno · wheel · roulette</text>
+        <text x="842" y="220" fill="#e2e8f0" font-size="12">6 progression engines</text>
+        <text x="842" y="238" fill="#94a3b8" font-size="10.5">blackjack · hilo · mines · limbo ·</text>
+        <text x="842" y="254" fill="#94a3b8" font-size="10.5">dragon tower · chicken cross</text>
+        <text x="842" y="282" fill="#e2e8f0" font-size="12">LedgerService</text>
+        <text x="842" y="300" fill="#94a3b8" font-size="10.5">FOR UPDATE locks · idempotent moves</text>
+        <text x="842" y="328" fill="#e2e8f0" font-size="12">SeedService</text>
+        <text x="842" y="346" fill="#94a3b8" font-size="10.5">commit-reveal · per-bet nonce</text>
+        <text x="842" y="374" fill="#e2e8f0" font-size="12">Realtime bus</text>
+        <text x="842" y="392" fill="#94a3b8" font-size="10.5">observer → SSE fan-out</text>
+        <line x1="842" y1="414" x2="1100" y2="414" stroke="#1e293b" stroke-width="1"/>
+        <text x="842" y="438" fill="#64748b" font-size="10">pure engines, injected RandomSource</text>
+        <text x="842" y="456" fill="#64748b" font-size="10">settlement inside one transaction</text>
+      </g>
+
+      <!-- DATA -->
+      <g>
+        <rect x="1150" y="70" width="270" height="402" rx="7" fill="#0f172a"/>
+        <rect x="1150" y="70" width="270" height="402" rx="7" fill="rgba(76,29,149,0.42)" stroke="#a78bfa" stroke-width="2"/>
+        <text x="1172" y="100" fill="#a78bfa" font-size="14" font-weight="500">Drizzle → PGlite</text>
+        <text x="1172" y="120" fill="#94a3b8" font-size="10.5">postgres dialect · zero setup</text>
+        <text x="1172" y="152" fill="#cbd5e1" font-size="11.5">users</text>
+        <text x="1172" y="176" fill="#cbd5e1" font-size="11.5">wallets</text>
+        <text x="1172" y="200" fill="#cbd5e1" font-size="11.5">ledger_entries</text>
+        <text x="1172" y="224" fill="#cbd5e1" font-size="11.5">bets</text>
+        <text x="1172" y="248" fill="#cbd5e1" font-size="11.5">seed_pairs</text>
+        <text x="1172" y="272" fill="#cbd5e1" font-size="11.5">faucet_claims</text>
+        <text x="1172" y="296" fill="#cbd5e1" font-size="11.5">player_stats</text>
+        <line x1="1172" y1="318" x2="1398" y2="318" stroke="#1e293b" stroke-width="1"/>
+        <text x="1172" y="342" fill="#94a3b8" font-size="10.5">migrations</text>
+        <text x="1172" y="360" fill="#cbd5e1" font-size="11">drizzle/*.sql, applied on boot</text>
+        <text x="1172" y="388" fill="#94a3b8" font-size="10.5">single writer</text>
+        <text x="1172" y="406" fill="#cbd5e1" font-size="11">.data/pglite volume</text>
+        <text x="1172" y="440" fill="#64748b" font-size="10">portable to PostgreSQL</text>
+      </g>
+
+      <!-- FAIRNESS -->
+      <g>
+        <rect x="820" y="540" width="302" height="122" rx="7" fill="#0f172a"/>
+        <rect x="820" y="540" width="302" height="122" rx="7" fill="rgba(136,19,55,0.42)" stroke="#fb7185" stroke-width="2" stroke-dasharray="5,4"/>
+        <text x="842" y="568" fill="#fb7185" font-size="12.5">Fairness</text>
+        <text x="842" y="590" fill="#cbd5e1" font-size="10.5">SHA-256 commitment, seed encrypted</text>
+        <text x="842" y="608" fill="#cbd5e1" font-size="10.5">AES-256-GCM at rest</text>
+        <text x="842" y="630" fill="#cbd5e1" font-size="10.5">HMAC-SHA256(serverSeed,</text>
+        <text x="842" y="646" fill="#cbd5e1" font-size="10.5">clientSeed:nonce:cursor)</text>
+      </g>
+
+      <!-- RUNTIME -->
+      <g>
+        <rect x="460" y="540" width="332" height="122" rx="7" fill="#0f172a"/>
+        <rect x="460" y="540" width="332" height="122" rx="7" fill="rgba(120,53,15,0.32)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="482" y="568" fill="#fbbf24" font-size="12.5">Runtime</text>
+        <text x="482" y="590" fill="#cbd5e1" font-size="10.5">systemd → next start on 127.0.0.1:3100</text>
+        <text x="482" y="608" fill="#cbd5e1" font-size="10.5">cloudflared quick tunnel → https</text>
+        <text x="482" y="630" fill="#cbd5e1" font-size="10.5">node 26 · PGlite volume ~39 MB</text>
+        <text x="482" y="648" fill="#94a3b8" font-size="10">one process: single-writer database</text>
+      </g>
+
+      <!-- LEGEND -->
+      <g>
+        <rect x="30" y="540" width="400" height="122" rx="7" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+        <text x="50" y="566" fill="#94a3b8" font-size="10" letter-spacing="0.16em">LEGEND</text>
+        <rect x="50" y="580" width="14" height="11" rx="2" fill="rgba(8,51,68,0.42)" stroke="#22d3ee" stroke-width="1.4"/>
+        <text x="72" y="590" fill="#cbd5e1" font-size="10.5">client</text>
+        <rect x="130" y="580" width="14" height="11" rx="2" fill="rgba(6,78,59,0.42)" stroke="#34d399" stroke-width="1.4"/>
+        <text x="152" y="590" fill="#cbd5e1" font-size="10.5">server</text>
+        <rect x="212" y="580" width="14" height="11" rx="2" fill="rgba(76,29,149,0.42)" stroke="#a78bfa" stroke-width="1.4"/>
+        <text x="234" y="590" fill="#cbd5e1" font-size="10.5">data</text>
+        <rect x="286" y="580" width="14" height="11" rx="2" fill="rgba(136,19,55,0.42)" stroke="#fb7185" stroke-width="1.4"/>
+        <text x="308" y="590" fill="#cbd5e1" font-size="10.5">security</text>
+        <rect x="356" y="580" width="14" height="11" rx="2" fill="rgba(120,53,15,0.32)" stroke="#fbbf24" stroke-width="1.4"/>
+        <text x="378" y="590" fill="#cbd5e1" font-size="10.5">runtime</text>
+        <line x1="50" y1="616" x2="96" y2="616" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+        <text x="106" y="620" fill="#cbd5e1" font-size="10.5">request</text>
+        <line x1="176" y1="616" x2="222" y2="616" stroke="#22d3ee" stroke-width="2" stroke-dasharray="6,5" marker-end="url(#ac)"/>
+        <text x="232" y="620" fill="#cbd5e1" font-size="10.5">server push</text>
+        <line x1="330" y1="616" x2="376" y2="616" stroke="#fb7185" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+        <text x="386" y="620" fill="#cbd5e1" font-size="10.5">seed</text>
+        <text x="50" y="648" fill="#475569" font-size="10">No secret ever reaches the client.</text>
+      </g>
+    </svg>
+  </div>
+  <footer>openstake · play money only · no deposits, no withdrawals, no prizes</footer>
+</body>
+</html>
